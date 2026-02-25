@@ -184,6 +184,39 @@ app.post("/pastas", (req, res) => {
   );
 });
 
+// Exclui uma pasta e tudo que ela contém:
+// arquivos em disco + registros de arquivos + subpastas + a própria pasta
+app.delete("/pastas/:id", (req, res) => {
+  const { id } = req.params;
+
+  // 1) Busca todos os arquivos da pasta (raiz + subpastas)
+  db.all("SELECT nome_arquivo FROM arquivos WHERE pasta_id = ?", [id], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    // Apaga cada arquivo do disco
+    rows.forEach(row => {
+      const fp = path.join(UPLOADS_DIR, row.nome_arquivo);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    });
+
+    // 2) Remove arquivos do banco
+    db.run("DELETE FROM arquivos WHERE pasta_id = ?", [id], (err2) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+
+      // 3) Remove subpastas
+      db.run("DELETE FROM subpastas WHERE pasta_id = ?", [id], (err3) => {
+        if (err3) return res.status(500).json({ error: err3.message });
+
+        // 4) Remove a pasta em si
+        db.run("DELETE FROM pastas WHERE id = ?", [id], (err4) => {
+          if (err4) return res.status(500).json({ error: err4.message });
+          res.json({ ok: true });
+        });
+      });
+    });
+  });
+});
+
 // Atualiza os dados de uma pasta existente
 app.put("/pastas/:id", (req, res) => {
   const { nome, cpf, cargo, setor } = req.body;

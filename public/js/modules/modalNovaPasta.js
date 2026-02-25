@@ -73,6 +73,8 @@ export function initModalNovaPasta() {
     const btnSalvarEdicao  = document.getElementById('btnSalvarEdicao');
     // Botão "CANCELAR" no formulário de edição
     const btnCancelarEdicao= document.getElementById('btnCancelarEdicao');
+    // Botão vermelho "🗑 Excluir pasta" no rodapé do formulário de edição
+    const btnExcluirPasta  = document.getElementById('btnExcluirPasta');
     // Área branca onde os arquivos enviados são listados
     const uploadArea       = document.getElementById('uploadArea');
     // Input de arquivo oculto – ativado pelo texto ou pelo botão Upload+
@@ -110,6 +112,11 @@ export function initModalNovaPasta() {
     const breadcrumbTexto      = document.getElementById('breadcrumbTexto');
     // Botão "← Voltar" que sai da subpasta e volta à raiz
     const btnVoltarRaiz        = document.getElementById('btnVoltarRaiz');
+
+    // Toast de Desfazer (elemento fixo na tela)
+    const toastUndo      = document.getElementById('toastUndo');
+    const toastMensagem  = document.getElementById('toastMensagem');
+    const btnDesfazer    = document.getElementById('btnDesfazer');
 
     // Estado atual da navegação: null = raiz da pasta, objeto = dentro de uma subpasta
     // { id, nome } da subpasta atualmente aberta
@@ -229,6 +236,98 @@ export function initModalNovaPasta() {
             console.error('Erro ao editar pasta:', err);
             alert('Erro ao salvar. Tente novamente.');
         });
+    });
+
+    // ──────────────────────────────────────────────────────────────
+    // FUNÇÃO: mostrarToastUndo
+    // Exibe a notificação de desfazer na parte inferior da tela.
+    // Parâmetros:
+    //  - mensagem  : texto exibido no toast
+    //  - onDesfazer: função chamada se o usuário clicar em "Desfazer"
+    //  - onConfirmar: função chamada quando o tempo encerra (exclusão real)
+    //  - duracao   : milissegundos até confirmar (padrão 5000 ms)
+    // ──────────────────────────────────────────────────────────────
+    let _toastTimer = null;
+
+    function mostrarToastUndo(mensagem, onDesfazer, onConfirmar, duracao = 5000) {
+        // Cancela timer anterior se já houver um toast em andamento
+        if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+
+        toastMensagem.textContent = mensagem;
+        toastUndo.classList.remove('hidden');
+        // (Re)inicia a animação da barra de progresso
+        const barra = document.getElementById('toastBarra');
+        barra.style.transition = 'none';
+        barra.style.width = '100%';
+        // Pequeno delay para o browser "resetar" a transição
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            barra.style.transition = `width ${duracao}ms linear`;
+            barra.style.width = '0%';
+        }));
+
+        // Handler do botão Desfazer – limpa o anterior para evitar duplicatas
+        const novoDesfazer = () => {
+            clearTimeout(_toastTimer);
+            _toastTimer = null;
+            toastUndo.classList.add('hidden');
+            btnDesfazer.removeEventListener('click', novoDesfazer);
+            onDesfazer();
+        };
+        btnDesfazer.removeEventListener('click', btnDesfazer._handler || (() => {}));
+        btnDesfazer._handler = novoDesfazer;
+        btnDesfazer.addEventListener('click', novoDesfazer);
+
+        // Timer que efetiva a exclusão após o prazo
+        _toastTimer = setTimeout(() => {
+            _toastTimer = null;
+            toastUndo.classList.add('hidden');
+            btnDesfazer.removeEventListener('click', novoDesfazer);
+            onConfirmar();
+        }, duracao);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // BOTÃO EXCLUIR PASTA
+    // Pede confirmação, fecha o modal e exibe o toast de Desfazer.
+    // Se o usuário não desfizer em 5 s, envia DELETE ao servidor.
+    // ──────────────────────────────────────────────────────────────
+    btnExcluirPasta.addEventListener('click', () => {
+        if (!confirm('Excluir a pasta de "' + pastaSelecionada.nome + '"?\nEsta ação pode ser desfeita nos próximos 5 segundos.')) return;
+
+        const dadosSalvos = { ...pastaSelecionada };
+        const id = dadosSalvos.id;
+
+        // Remove o card da tela imediatamente (esconde antes de confirmar)
+        const cardEl = listaPastas.querySelector('[data-id="' + id + '"]');
+        if (cardEl) cardEl.style.display = 'none';
+
+        // Fecha o modal para dar foco ao toast
+        fecharModalUpload();
+
+        mostrarToastUndo(
+            'Pasta "' + dadosSalvos.nome + '" excluída.',
+            // Desfazer: restaura o card e os dados
+            () => {
+                if (cardEl) cardEl.style.display = '';
+            },
+            // Confirmar: envia DELETE ao servidor e remove definitivamente
+            () => {
+                fetch('/pastas/' + id, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(() => {
+                        // Remove do array em memória
+                        const idx = pastas.findIndex(p => p.id == id);
+                        if (idx !== -1) pastas.splice(idx, 1);
+                        // Remove o card do DOM
+                        if (cardEl) cardEl.remove();
+                    })
+                    .catch(err => {
+                        console.error('Erro ao excluir pasta:', err);
+                        // Em caso de erro, restaura o card
+                        if (cardEl) cardEl.style.display = '';
+                    });
+            }
+        );
     });
 
     // ──────────────────────────────────────────────────────────
@@ -367,14 +466,25 @@ export function initModalNovaPasta() {
         excluir.title = 'Excluir subpasta';
         excluir.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!confirm('Excluir a subpasta "' + subNome + '" e todos os seus arquivos?')) return;
-            fetch('/pastas/' + pastaSelecionada.id + '/subpastas/' + subId, { method: 'DELETE' })
-                .then(r => r.json())
-                .then(() => card.remove())
-                .catch(err => {
-                    console.error('Erro ao excluir subpasta:', err);
-                    alert('Não foi possível excluir a subpasta.');
-                });
+
+            // Esconde o card imediatamente antes do toast
+            card.style.display = 'none';
+
+            mostrarToastUndo(
+                'Subpasta "' + subNome + '" excluída.',
+                // Desfazer: restaura o card
+                () => { card.style.display = ''; },
+                // Confirmar: exclui no servidor
+                () => {
+                    fetch('/pastas/' + pastaSelecionada.id + '/subpastas/' + subId, { method: 'DELETE' })
+                        .then(r => r.json())
+                        .then(() => card.remove())
+                        .catch(err => {
+                            console.error('Erro ao excluir subpasta:', err);
+                            card.style.display = '';
+                        });
+                }
+            );
         });
 
         // ── Zona de drop para arquivos arrastados da lista da raiz ──

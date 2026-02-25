@@ -710,3 +710,103 @@ body {
     background: rgba(255,255,255,0.06);
     color: #fff;
 }
+/* ── Botão de perigo (excluir) ────────────────────────────────────
+   Botão vermelho usado para ações destrutivas como excluir pasta. */
+.btn-danger {
+    background: rgba(220, 38, 38, 0.15);
+    color: rgb(248, 80, 80);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    font-size: 12px;
+    margin-left: auto;
+}
+.btn-danger:hover {
+    background: rgba(220, 38, 38, 0.3);
+    color: rgb(255, 100, 100);
+    border-color: rgba(220, 38, 38, 0.7);
+}
+
+/* Linha de botões no formulário de edição: distribui os 3 botões */
+#editBtns {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+    flex-wrap: wrap;
+}
+
+/* ── Toast de Desfazer ────────────────────────────────────────────
+   Notificação fixa na base da tela que aparece após uma exclusão.
+   Contém a mensagem, botão Desfazer e barra de progresso. */
+.toast-undo {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2a2a2a;
+    border: 1px solid rgba(252, 172, 1, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.55);
+    padding: 14px 20px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 300px;
+    max-width: 90vw;
+    z-index: 9999;
+    animation: toastSlide 0.25s ease;
+}
+
+@keyframes toastSlide {
+    from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Linha superior: mensagem + botão Desfazer lado a lado */
+.toast-undo #toastMensagem {
+    flex: 1;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    display: block;
+}
+
+/* Linha com mensagem e botão */
+.toast-undo {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px 18px 8px;
+}
+
+/* Sobreescrita: coluna apenas para a barra */
+.toast-undo > #toastBarra {
+    width: 100%;
+}
+
+/* Botão "Desfazer" dentro do toast */
+.toast-btn-desfazer {
+    background: transparent;
+    border: 1px solid rgb(200,144,1);
+    color: rgb(200,144,1);
+    border-radius: 6px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+.toast-btn-desfazer:hover {
+    background: rgb(200,144,1);
+    color: #111;
+}
+
+/* Barra de progresso que encolhe até o fim do prazo */
+#toastBarra {
+    height: 3px;
+    background: rgb(200,144,1);
+    border-radius: 2px;
+    width: 100%;
+    order: 99;
+    margin-top: 6px;
+}

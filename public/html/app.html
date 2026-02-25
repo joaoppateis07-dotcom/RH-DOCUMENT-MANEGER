@@ -171,6 +171,7 @@
         <div id="editBtns">
           <button id="btnCancelarEdicao" class="btn btnCancelarPasta">CANCELAR</button>
           <button id="btnSalvarEdicao"   class="btn">SALVAR</button>
+          <button id="btnExcluirPasta"   class="btn btn-danger">🗑 Excluir pasta</button>
         </div>
       </div>
 
@@ -229,8 +230,14 @@
     </div>
   </div>
 
-  <!-- Script principal carregado como módulo ES6.
-       Ele importa e inicializa o módulo modalNovaPasta.js. -->
+  <!-- Toast de undo: aparece após excluir pasta ou subpasta, com opção Desfazer -->
+  <div id="toastUndo" class="toast-undo hidden">
+    <span id="toastMensagem"></span>
+    <button id="btnDesfazer" class="toast-btn-desfazer">Desfazer</button>
+    <div id="toastBarra"></div>
+  </div>
+
+  <!-- Script principal carregado como módulo ES6. -->
   <script type="module" src="../js/app.js"></script>
 </body>
 </html>
