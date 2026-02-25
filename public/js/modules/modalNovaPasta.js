@@ -48,6 +48,47 @@ export function initModalNovaPasta() {
     // Container onde os cards das pastas criadas serão exibidos na tela
     const listaPastas      = document.getElementById('listaPastas');
 
+    // ── Barra de pesquisa ─────────────────────────────────────────────
+    const inputPesquisa    = document.getElementById('inputPesquisa');
+    const btnLimparPesquisa= document.getElementById('btnLimparPesquisa');
+    const semResultados    = document.getElementById('semResultados');
+    const termoPesquisado  = document.getElementById('termoPesquisado');
+
+    // Filtra os cards de pasta visíveis com base no texto digitado
+    function filtrarPastas() {
+        const termo = inputPesquisa.value.trim().toLowerCase();
+
+        // Mostra/esconde o botão de limpar
+        btnLimparPesquisa.classList.toggle('hidden', termo === '');
+
+        let visiveis = 0;
+        document.querySelectorAll('#listaPastas .pasta').forEach(card => {
+            const pasta = pastas.find(p => p.id == card.dataset.id);
+            if (!pasta) return;
+            const bate = pasta.nome.toLowerCase().includes(termo) ||
+                         pasta.cpf.toLowerCase().includes(termo);
+            card.style.display = bate ? '' : 'none';
+            if (bate) visiveis++;
+        });
+
+        // Exibe mensagem de "não encontrado" somente quando há termo e resultado zero
+        if (termo !== '' && visiveis === 0) {
+            termoPesquisado.textContent = inputPesquisa.value.trim();
+            semResultados.classList.remove('hidden');
+        } else {
+            semResultados.classList.add('hidden');
+        }
+    }
+
+    inputPesquisa.addEventListener('input', filtrarPastas);
+
+    // Botão ✕: limpa o campo e restaura todos os cards
+    btnLimparPesquisa.addEventListener('click', () => {
+        inputPesquisa.value = '';
+        filtrarPastas();
+        inputPesquisa.focus();
+    });
+
     // ──────────────────────────────────────────────────────────────
     // REFERÊNCIAS DO MODAL "UPLOAD / DETALHES DA PASTA"
     // (abre ao clicar em uma pasta existente)
@@ -151,6 +192,9 @@ export function initModalNovaPasta() {
 
     function fecharModalUpload() {
         modalUpload.classList.add('hidden');
+        // Remove destaque de seleção da pasta que estava aberta
+        document.querySelectorAll('.pasta.selecionada').forEach(p => p.classList.remove('selecionada'));
+        document.querySelectorAll('.subpasta-card.selecionada').forEach(c => c.classList.remove('selecionada'));
         listaArquivos.innerHTML = '';
         listaSubpastas.innerHTML = '';
         listaSubpastas.style.display = ''; // Garante que não fica oculto para a próxima abertura
@@ -544,9 +588,17 @@ export function initModalNovaPasta() {
             .catch(err => console.error('Erro ao mover arquivo:', err));
         });
 
-        // Clicar no card (e não no botão ✕) abre a visualização da subpasta
+        // 1 clique – seleciona o card (tira seleção das outras subpastas)
         card.addEventListener('click', (e) => {
             if (e.target === excluir) return;
+            document.querySelectorAll('.subpasta-card.selecionada').forEach(c => c.classList.remove('selecionada'));
+            card.classList.add('selecionada');
+        });
+
+        // 2 cliques – abre a visualização da subpasta
+        card.addEventListener('dblclick', (e) => {
+            if (e.target === excluir) return;
+            document.querySelectorAll('.subpasta-card.selecionada').forEach(c => c.classList.remove('selecionada'));
             abrirSubpasta(subId, subNome);
         });
 
@@ -803,10 +855,17 @@ export function initModalNovaPasta() {
         // Guarda o ID da pasta no atributo data-id para identificar qual abrir
         el.dataset.id = dados.id;
 
+        // 1 clique – seleciona (destaca) a pasta; tira a seleção das outras
         el.addEventListener('click', () => {
-            const id = el.dataset.id; // Pega o ID desta pasta específica
-            const d  = pastas.find(p => p.id == id); // Busca os dados completos no array
-            abrirModalPasta(d); // Abre o modal com os dados corretos
+            document.querySelectorAll('.pasta.selecionada').forEach(p => p.classList.remove('selecionada'));
+            el.classList.add('selecionada');
+        });
+
+        // 2 cliques – abre o modal da pasta
+        el.addEventListener('dblclick', () => {
+            const id = el.dataset.id;
+            const d  = pastas.find(p => p.id == id);
+            abrirModalPasta(d);
         });
         return el;
     }

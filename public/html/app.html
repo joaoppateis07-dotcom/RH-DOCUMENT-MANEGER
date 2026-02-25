@@ -46,6 +46,16 @@
         </div>
       </div>
 
+      <!-- Barra de pesquisa: filtra pastas por nome ou CPF em tempo real -->
+      <div id="barraPesquisa">
+        <span id="iconePesquisa">🔍</span>
+        <input id="inputPesquisa" type="text" placeholder="Pesquisar por nome ou CPF..." autocomplete="off">
+        <button id="btnLimparPesquisa" class="hidden">✕</button>
+      </div>
+
+      <!-- Mensagem exibida quando a pesquisa não encontra nenhum resultado -->
+      <p id="semResultados" class="hidden">Nenhuma pasta encontrada para &ldquo;<span id="termoPesquisado"></span>&rdquo;.</p>
+
       <!-- Container onde os cards das pastas criadas são inseridos pelo JavaScript -->
       <div id="listaPastas"></div>
 

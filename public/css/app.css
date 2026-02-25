@@ -32,6 +32,69 @@
     align-items: center;
 }
 
+/* ── Barra de pesquisa ───────────────────────────────────────────────
+   Campo de busca por nome ou CPF, acima da lista de pastas.  */
+#barraPesquisa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #252525;
+    border: 1px solid rgba(252,172,1,0.18);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+#barraPesquisa:focus-within {
+    border-color: rgba(200,144,1,0.7);
+    box-shadow: 0 0 0 3px rgba(200,144,1,0.1);
+}
+
+/* Ícone de lupa */
+#iconePesquisa {
+    font-size: 16px;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+/* Input de texto da pesquisa */
+#inputPesquisa {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e8e8e8;
+    font-size: 14px;
+    font-family: inherit;
+}
+#inputPesquisa::placeholder { color: rgba(255,255,255,0.28); }
+
+/* Botão ✕ que limpa a pesquisa – aparece apenas quando há texto */
+#btnLimparPesquisa {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.15s;
+    flex-shrink: 0;
+}
+#btnLimparPesquisa:hover { color: rgba(255,255,255,0.85); }
+
+/* Mensagem "Nenhuma pasta encontrada" */
+#semResultados {
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 14px;
+    margin: 32px 0 12px;
+}
+#semResultados span {
+    color: rgb(200,144,1);
+    font-weight: 600;
+}
+
 /* Grid dos cards de estatísticas (Total de Documentos, Total Funcionários, etc.).
    auto-fit + minmax faz os cards quebrarem para a linha seguinte se a tela for pequena. */
 .stats {
@@ -251,6 +314,17 @@ body {
 
 /* Animação de flutuar ao passar o mouse sobre uma pasta */
 .pasta:hover {
+    transform: translateY(-7px);
+}
+
+/* Pasta selecionada com 1 clique – borda dourada + fundo levemente iluminado */
+.pasta.selecionada {
+    border: 2px solid rgb(200,144,1);
+    background: rgba(200,144,1,0.08);
+    box-shadow: 0 0 0 3px rgba(200,144,1,0.18), 0 8px 32px rgba(0,0,0,0.45);
+    transform: translateY(-4px);
+}
+.pasta.selecionada:hover {
     transform: translateY(-7px);
 }
 
@@ -611,6 +685,17 @@ body {
     background: #2d2d2d;
     border-color: rgba(252,172,1,0.5);
     transform: translateY(-2px);
+}
+
+/* Subpasta selecionada com 1 clique */
+.subpasta-card.selecionada {
+    border-color: rgb(200,144,1);
+    background: rgba(200,144,1,0.08);
+    box-shadow: 0 0 0 3px rgba(200,144,1,0.18);
+    transform: translateY(-2px);
+}
+.subpasta-card.selecionada:hover {
+    transform: translateY(-4px);
 }
 
 /* Destaque quando um arquivo está sobre o card (drag-over) */
