@@ -153,6 +153,7 @@ export function initModalNovaPasta() {
         modalUpload.classList.add('hidden');
         listaArquivos.innerHTML = '';
         listaSubpastas.innerHTML = '';
+        listaSubpastas.style.display = ''; // Garante que não fica oculto para a próxima abertura
         uploadAreaTexto.style.display = '';
         // Reseta estado de navegação para a raiz
         subpastaAtual = null;
@@ -160,6 +161,12 @@ export function initModalNovaPasta() {
         subpastasSection.classList.remove('hidden');
         novaSubpastaForm.classList.add('hidden');
         // Os arquivos e subpastas continuam salvos no servidor
+    }
+
+    // Verifica se ambas as listas estão vazias e exibe/esconde o texto instrucional
+    function verificarTextoVazio() {
+        const vazio = listaArquivos.children.length === 0 && listaSubpastas.children.length === 0;
+        uploadAreaTexto.style.display = vazio ? '' : 'none';
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -355,9 +362,6 @@ export function initModalNovaPasta() {
     // Botões: "Abrir ↗" (nova aba) e "✕" (excluir do servidor).
     // ──────────────────────────────────────────────────────────
     function renderizarCardArquivo(arquivoId, nomeOriginal, url) {
-        // Esconde o texto instrucional pois já há ao menos um arquivo
-        uploadAreaTexto.style.display = 'none';
-
         const item = document.createElement('div');
         item.classList.add('arquivo-item');
         item.dataset.arquivoId = arquivoId;
@@ -393,9 +397,7 @@ export function initModalNovaPasta() {
                 .then(r => r.json())
                 .then(() => {
                     item.remove();
-                    // Se não houver mais arquivos, reexibe o texto instrucional
-                    if (listaArquivos.children.length === 0)
-                        uploadAreaTexto.style.display = '';
+                    verificarTextoVazio(); // Mostra texto se ambas as listas ficarem vazias
                 })
                 .catch(err => {
                     console.error('Erro ao excluir arquivo:', err);
@@ -423,6 +425,7 @@ export function initModalNovaPasta() {
         item.addEventListener('dragend', () => item.classList.remove('arrastando'));
 
         listaArquivos.appendChild(item);
+        verificarTextoVazio(); // Esconde o texto instrucional assim que um item é adicionado
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -478,7 +481,10 @@ export function initModalNovaPasta() {
                 () => {
                     fetch('/pastas/' + pastaSelecionada.id + '/subpastas/' + subId, { method: 'DELETE' })
                         .then(r => r.json())
-                        .then(() => card.remove())
+                        .then(() => {
+                            card.remove();
+                            verificarTextoVazio();
+                        })
                         .catch(err => {
                             console.error('Erro ao excluir subpasta:', err);
                             card.style.display = '';
@@ -530,8 +536,7 @@ export function initModalNovaPasta() {
                 const itemEl = listaArquivos.querySelector('[data-arquivo-id="' + arquivoId + '"]');
                 if (itemEl) {
                     itemEl.remove();
-                    // Se a lista raiz ficou vazia, mostra o texto instrucional
-                    if (listaArquivos.children.length === 0) uploadAreaTexto.style.display = '';
+                    verificarTextoVazio(); // Mostra texto se ambas as listas ficarem vazias
                 }
                 // Atualiza o contador no card da subpasta destino
                 atualizarContagemSubpasta(card, subId);
@@ -549,6 +554,7 @@ export function initModalNovaPasta() {
         card.appendChild(nomeEl);
         card.appendChild(excluir);
         listaSubpastas.appendChild(card);
+        verificarTextoVazio(); // Esconde o texto quando a primeira subpasta é adicionada
 
         // Busca a contagem inicial de arquivos para exibir no card
         atualizarContagemSubpasta(card, subId);
@@ -592,9 +598,10 @@ export function initModalNovaPasta() {
         breadcrumb.classList.remove('hidden');
         breadcrumbTexto.textContent = pastaSelecionada.nome + '  /  📂 ' + subNome;
 
-        // Limpa a lista de arquivos e carrega os da subpasta
+        // Limpa a lista de arquivos, esconde cards de subpastas, carrega os da subpasta
         listaArquivos.innerHTML = '';
-        uploadAreaTexto.style.display = '';
+        listaSubpastas.style.display = 'none'; // Esconde subpastas enquanto navega dentro de uma
+        verificarTextoVazio();
 
         fetch('/subpastas/' + subId + '/arquivos')
             .then(r => r.json())
@@ -619,7 +626,8 @@ export function initModalNovaPasta() {
         subpastasSection.classList.remove('hidden');
 
         listaArquivos.innerHTML = '';
-        uploadAreaTexto.style.display = '';
+        listaSubpastas.style.display = ''; // Restaura os cards de subpastas na área
+        verificarTextoVazio();
         carregarArquivos(pastaSelecionada.id);
     }
 

@@ -389,48 +389,75 @@ body {
 }
 
 /* ── Upload area ─────────────────────────────────────────────────
-   Área escura com borda tracejada dourada onde os arquivos enviados ficam listados.
-   flex:1 faz ela ocupar todo o espaço vertical disponível entre o form e o rodapé.
-   overflow-y:auto adiciona scroll quando há muitos arquivos. */
+   Área escura onde subpastas e arquivos ficam juntos,
+   alinhados do canto superior esquerdo – estilo estante. */
 #uploadArea {
     flex: 1;
     background: #1c1c1c;
-    margin: 16px 24px;
+    margin: 10px 24px 16px;
     border-radius: 14px;
     border: 2px dashed rgba(252,172,1,0.25);
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-start;
     cursor: default;
     overflow-y: auto;
-    padding: 20px 16px;
-    gap: 10px;
+    padding: 16px;
+    gap: 0;
+    position: relative;
 }
 
-/* Texto instrucional "Clique em Upload+ para adicionar um arquivo".
-   Fica centralizado na área. Fica oculto via JS quando o primeiro arquivo é adicionado. */
+/* Texto instrucional: posicionado no centro da área enquanto ela está vazia */
 #uploadAreaTexto {
     color: rgba(255,255,255,0.3);
     font-size: 14px;
     text-align: center;
     cursor: pointer;
     user-select: none;
-    margin: auto;
     transition: color 0.2s;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: auto;
 }
 
-/* Efeito dourado no hover do texto instrucional, indicando que é clicável */
+/* Efeito dourado no hover do texto instrucional */
 #uploadAreaTexto:hover {
     color: rgb(200,144,1);
 }
 
-/* ── Arquivo item ────────────────────────────────────────────────
-   Card de cada arquivo adicionado na pasta. Exibe:
-     - emoji com o tipo do arquivo (ícone)
-     - nome do arquivo
-     - botão "Abrir ↗" que abre o arquivo em nova aba
-   Clicar em qualquer área do card também abre o arquivo. */
+/* Container das subpastas dentro da área – linha flex-wrap, alinhada ao topo esquerdo */
+#listaSubpastas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+/* Quando há conteúdo em qualquer lista, a área não precisa de centração */
+#uploadArea:has(#listaSubpastas:not(:empty)),
+#uploadArea:has(#listaArquivos:not(:empty)) {
+    justify-content: flex-start;
+}
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(252,172,1,0.1);
+}
+
+/* Container dos arquivos: coluna, largura total */
+#listaArquivos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+/* ── Arquivo item ──────────────────────────────────────────
+   Largura controlada pelo #listaArquivos (pai flex-column). */
 .arquivo-item {
     background: #2d2d2d;
     border: 1px solid rgba(252,172,1,0.15);
@@ -438,7 +465,6 @@ body {
     padding: 10px 16px;
     border-radius: 10px;
     font-size: 13px;
-    width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -518,11 +544,11 @@ body {
     border-radius: 6px;
 }
 
-/* Container geral da seção de subpastas */
+/* Container geral da seção de subpastas – agora contém apenas o
+   cabeçalho e o formulário de criação. Os cards ficam dentro de #uploadArea. */
 #subpastasSection {
     margin: 0 24px 0;
-    border-bottom: 1px solid rgba(252,172,1,0.12);
-    padding-bottom: 12px;
+    padding-bottom: 4px;
 }
 
 /* Linha de cabeçalho: título à esquerda, botão "+ Nova" à direita */
@@ -563,17 +589,6 @@ body {
     transition: border-color 0.2s;
 }
 #inputNomeSubpasta:focus { border-color: rgb(200,144,1); }
-
-/* Container horizontal que lista os cards das subpastas – scroll lateral */
-#listaSubpastas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 4px 0;
-    min-height: 10px;
-    max-height: 180px;
-    overflow-y: auto;
-}
 
 /* Card individual de uma subpasta */
 .subpasta-card {

@@ -193,9 +193,6 @@
           <button id="btnCriarSubpasta" class="btn">Criar</button>
           <button id="btnCancelarSubpasta" class="btn btnCancelarPasta">✕</button>
         </div>
-
-        <!-- Container onde os cards das subpastas são injetados pelo JavaScript -->
-        <div id="listaSubpastas"></div>
       </div>
 
       <!-- ── BREADCRUMB ──────────────────────────────────────────────
@@ -207,17 +204,19 @@
         <span id="breadcrumbTexto"></span>
       </div>
 
-      <!-- Área de arquivos: fundo escuro com borda tracejada dourada.
-           Mostra o texto instrucional quando vazia e lista os arquivos adicionados. -->
+      <!-- Área principal de conteúdo: subpastas e arquivos ficam juntos aqui,
+           alinhados do canto superior esquerdo como uma estante. -->
       <div id="uploadArea">
-        <!-- Texto clicável que aparece quando não há arquivos.
-             O JavaScript o esconde ao adicionar o primeiro arquivo. -->
+        <!-- Texto instrucional, some quando há conteúdo -->
         <p id="uploadAreaTexto">Clique em &quot;Upload+&quot; para adicionar um arquivo</p>
 
-        <!-- Input de arquivo oculto: ativado via JS pelo texto acima ou pelo botão Upload+ -->
+        <!-- Input de arquivo oculto -->
         <input type="file" id="fileInput" style="display:none" multiple>
 
-        <!-- Container onde o JavaScript injeta os cards dos arquivos adicionados -->
+        <!-- Cards das subpastas ficam aqui, lado a lado como uma estante -->
+        <div id="listaSubpastas"></div>
+
+        <!-- Cards dos arquivos adicionados -->
         <div id="listaArquivos"></div>
       </div>
 
