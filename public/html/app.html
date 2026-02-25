@@ -2,92 +2,146 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <!-- Garante que o site funcione bem em telas de celular (responsividade) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>App</title>
+  <!-- Folha de estilos principal do sistema -->
   <link rel="stylesheet" href="../css/app.css">
 </head>
 
 <body>
+
+  <!-- ============================================================
+       TOPBAR – Barra superior com o título e o botão Nova Pasta
+       ============================================================ -->
   <main class="container">
     <div class="topbar">
       <div>
+        <!-- Título e subtítulo do sistema -->
         <h1 id="tituloRhDocumentos">RH Documentos</h1>
         <p id="sistemaDeGestaoDeDocumentos">Sistema de Gestão de Documentos</p>
       </div>
+      <!-- Botão que abre o modal de criação de nova pasta -->
       <button id="btnNovaPasta" class="btn">+ NOVA PASTA</button>
     </div>
   </main>
+
+  <!-- ============================================================
+       TELA PRINCIPAL – Dashboard com cards de estatísticas e lista de pastas
+       ============================================================ -->
   <main class="app">
     <section id="tela-dashboard">
+
+      <!-- Cards de estatísticas (números rápidos na parte de cima) -->
       <div class="stats">
         <div class="card">
-        <div class="card-tittle">Total de Documentos</div>
-           <div class="card-value">0</div>
+          <!-- Título do card -->
+          <div class="card-tittle">Total de Documentos</div>
+          <!-- Valor numérico exibido no card (atualizado via JS futuramente) -->
+          <div class="card-value">0</div>
         </div>
         <div class="card">
-           <div class="card-tittle">Total Funcionarios</div>
-           <div class="card-value">0</div>
+          <div class="card-tittle">Total Funcionarios</div>
+          <div class="card-value">0</div>
         </div>
-     </div>
-     <div id="listaPastas">
-              
-     </div>
-  </main>
-  <div id="modalNovaPasta" class="modal hidden">
-    <div id="containerCampos" class="modal-box">
-      <h2 id="tituloModalNovaPasta">Nova Pasta</h2>
-      <div id="modalInput1">
-       <INPUT id="inputNomePasta" type="text" placeholder="Nome">
       </div>
+
+      <!-- Container onde os cards das pastas criadas são inseridos pelo JavaScript -->
+      <div id="listaPastas"></div>
+
+    </section>
+  </main>
+
+  <!-- ============================================================
+       MODAL NOVA PASTA – Pop-up para criar uma nova pasta de funcionário.
+       Fica oculto por padrão (classe 'hidden') e é exibido ao clicar
+       no botão "+ NOVA PASTA". O JavaScript em modalNovaPasta.js controla isso.
+       ============================================================ -->
+  <div id="modalNovaPasta" class="modal hidden">
+    <!-- Caixa interna centralizada com os campos do formulário -->
+    <div id="containerCampos" class="modal-box">
+
+      <!-- Título do modal -->
+      <h2 id="tituloModalNovaPasta">Nova Pasta</h2>
+
+      <!-- Campo: Nome do funcionário -->
+      <div id="modalInput1">
+        <INPUT id="inputNomePasta" type="text" placeholder="Nome">
+      </div>
+
+      <!-- Campo: CPF do funcionário -->
       <div id="modalInput2">
-       <INPUT id="inputCpfFFuncionario" type="text" placeholder="Cpf">
-       </div>
-       <div id="divSelectCargo">        
+        <INPUT id="inputCpfFFuncionario" type="text" placeholder="Cpf">
+      </div>
+
+      <!-- Dropdown: Cargo do funcionário -->
+      <div id="divSelectCargo">
         <select id="selectCargo">
-         <option value="__" selected disabled>Selecione um cargo</option>
-         <option>GERENTE COMERCIAL 1</option>
-         <option>GERENTE COMERCIAL 2</option>
-         <option>GERENTE COMERCIAL 3</option>
-         <OPTION>GERENTE ADM</OPTION>
-         <option>GERENTE OPERACIONAL</option>
-         <option>MASTER T.I</option>
-         <option>ASSISTENTE COMERCIAL</option>
-         <option>ASSISTENTE T.I</option>
-         <option>ASSISTENTE ADM</option>
-         <option>ASSISTENTE OPERACIONAL</option>
-         <option>DIRETORIA</option>
+          <option value="__" selected disabled>Selecione um cargo</option>
+          <option>GERENTE COMERCIAL 1</option>
+          <option>GERENTE COMERCIAL 2</option>
+          <option>GERENTE COMERCIAL 3</option>
+          <option>GERENTE ADM</option>
+          <option>GERENTE OPERACIONAL</option>
+          <option>MASTER T.I</option>
+          <option>ASSISTENTE COMERCIAL</option>
+          <option>ASSISTENTE T.I</option>
+          <option>ASSISTENTE ADM</option>
+          <option>ASSISTENTE OPERACIONAL</option>
+          <option>DIRETORIA</option>
         </select>
       </div>
+
+      <!-- Dropdown: Setor do funcionário -->
       <div id="divSelectSetor">
         <select id="selectSetor">
-         <option value="__" selected disabled>Selecione um Setor</option>
-         <option>T.I</option>
-         <option>OPERAÇÃO</option>
-         <option>COMERCIAL</option>
-         <option>ADM</option>
-         <option>DIRETORIA</option>
+          <option value="__" selected disabled>Selecione um Setor</option>
+          <option>T.I</option>
+          <option>OPERAÇÃO</option>
+          <option>COMERCIAL</option>
+          <option>ADM</option>
+          <option>DIRETORIA</option>
         </select>
       </div>
+
+      <!-- Botões de ação: CANCELAR fecha o modal, CRIAR envia os dados -->
       <div id="btnCriar&Cancelar">
-       <button id="btnCancelarPasta" class="btn btnCancelarPasta">CANCELAR</button>
-       <button id="btnCriarPasta" class="btn">CRIAR</button>
+        <button id="btnCancelarPasta" class="btn btnCancelarPasta">CANCELAR</button>
+        <button id="btnCriarPasta" class="btn">CRIAR</button>
       </div>
+
     </div>
   </div>
+
+  <!-- ============================================================
+       MODAL UPLOAD / DETALHES DA PASTA – Pop-up que abre ao clicar
+       em uma pasta existente. Permite ver as informações, editar e
+       adicionar arquivos. Também fica oculto por padrão.
+       ============================================================ -->
   <div id="modalUpload" class="modal hidden">
+    <!-- Caixa principal do modal: ocupa 80% da tela -->
     <div id="uploadModalBox" class="modal-box-upload">
+
+      <!-- Cabeçalho: exibe as informações da pasta e o botão Editar -->
       <div id="uploadHeader">
         <div id="uploadPastaInfo">
-          <span id="uploadInfoNome"></span>
-          <span id="uploadInfoCpf"></span>
-          <span id="uploadInfoCargo"></span>
-          <span id="uploadInfoSetor"></span>
+          <!-- Spans preenchidos pelo JavaScript com os dados da pasta clicada -->
+          <span id="uploadInfoNome"></span>   <!-- Nome do funcionário -->
+          <span id="uploadInfoCpf"></span>    <!-- CPF -->
+          <span id="uploadInfoCargo"></span>  <!-- Cargo -->
+          <span id="uploadInfoSetor"></span>  <!-- Setor -->
         </div>
+        <!-- Botão azul que mostra/esconde o formulário de edição abaixo -->
         <button id="btnEditar" class="btn btn-editar">Editar</button>
       </div>
+
+      <!-- Formulário de edição: oculto por padrão, aparece ao clicar em "Editar".
+           Permite alterar nome, CPF, cargo e setor de uma pasta existente. -->
       <div id="editFormUpload" class="hidden">
         <input id="editNome" type="text" placeholder="Nome">
-        <input id="editCpf" type="text" placeholder="CPF">
+        <input id="editCpf"  type="text" placeholder="CPF">
+
+        <!-- Dropdown de cargo para edição (mesmas opções do modal Nova Pasta) -->
         <select id="editCargo">
           <option value="__" selected disabled>Selecione um cargo</option>
           <option>GERENTE COMERCIAL 1</option>
@@ -102,6 +156,8 @@
           <option>ASSISTENTE OPERACIONAL</option>
           <option>DIRETORIA</option>
         </select>
+
+        <!-- Dropdown de setor para edição -->
         <select id="editSetor">
           <option value="__" selected disabled>Selecione um Setor</option>
           <option>T.I</option>
@@ -110,22 +166,39 @@
           <option>ADM</option>
           <option>DIRETORIA</option>
         </select>
+
+        <!-- Botões: CANCELAR fecha o form sem salvar, SALVAR envia PUT ao servidor -->
         <div id="editBtns">
           <button id="btnCancelarEdicao" class="btn btnCancelarPasta">CANCELAR</button>
-          <button id="btnSalvarEdicao" class="btn">SALVAR</button>
+          <button id="btnSalvarEdicao"   class="btn">SALVAR</button>
         </div>
       </div>
+
+      <!-- Área de arquivos: fundo escuro com borda tracejada dourada.
+           Mostra o texto instrucional quando vazia e lista os arquivos adicionados. -->
       <div id="uploadArea">
+        <!-- Texto clicável que aparece quando não há arquivos.
+             O JavaScript o esconde ao adicionar o primeiro arquivo. -->
         <p id="uploadAreaTexto">Clique em &quot;Upload+&quot; para adicionar um arquivo</p>
+
+        <!-- Input de arquivo oculto: ativado via JS pelo texto acima ou pelo botão Upload+ -->
         <input type="file" id="fileInput" style="display:none" multiple>
+
+        <!-- Container onde o JavaScript injeta os cards dos arquivos adicionados -->
         <div id="listaArquivos"></div>
       </div>
+
+      <!-- Rodapé: Upload+ adiciona arquivos, Sair fecha o modal -->
       <div id="uploadFooter">
         <button id="btnUploadMais" class="btn">Upload+</button>
-        <button id="btnSair" class="btn btn-sair">Sair</button>
+        <button id="btnSair"       class="btn btn-sair">Sair</button>
       </div>
+
     </div>
   </div>
+
+  <!-- Script principal carregado como módulo ES6.
+       Ele importa e inicializa o módulo modalNovaPasta.js. -->
   <script type="module" src="../js/app.js"></script>
 </body>
 </html>
