@@ -474,10 +474,35 @@ export function initModalNovaPasta() {
                 });
         });
 
-        // Monta o card: ícone + nome + botão abrir + botão excluir
+        // Monta o card: ícone + nome + botão abrir + [↩ Raiz se dentro de subpasta] + botão excluir
         item.appendChild(icon);
         item.appendChild(nomeEl);
         item.appendChild(abrir);
+
+        // Botão "↩ Raiz" – aparece apenas quando o arquivo está dentro de uma subpasta
+        if (subpastaAtual) {
+            const moverRaiz = document.createElement('span');
+            moverRaiz.classList.add('arquivo-mover-raiz');
+            moverRaiz.textContent = '↩ Raiz';
+            moverRaiz.title = 'Mover de volta para a raiz da pasta';
+            moverRaiz.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fetch('/arquivos/' + arquivoId + '/mover', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subpasta_id: null })
+                })
+                .then(r => r.json())
+                .then(() => {
+                    item.remove();
+                    verificarTextoVazio();
+                    marcarAlteracao();
+                })
+                .catch(err => console.error('Erro ao mover arquivo para raiz:', err));
+            });
+            item.appendChild(moverRaiz);
+        }
+
         item.appendChild(excluir);
 
         // Clicar em qualquer parte do card também abre o arquivo
@@ -618,20 +643,84 @@ export function initModalNovaPasta() {
 
         // 1 clique – seleciona o card (tira seleção das outras subpastas)
         card.addEventListener('click', (e) => {
-            if (e.target === excluir) return;
+            if (e.target === excluir || e.target === renomear || e.target === renameInput) return;
             document.querySelectorAll('.subpasta-card.selecionada').forEach(c => c.classList.remove('selecionada'));
             card.classList.add('selecionada');
         });
 
         // 2 cliques – abre a visualização da subpasta
         card.addEventListener('dblclick', (e) => {
-            if (e.target === excluir) return;
+            if (e.target === excluir || e.target === renomear || e.target === renameInput) return;
             document.querySelectorAll('.subpasta-card.selecionada').forEach(c => c.classList.remove('selecionada'));
             abrirSubpasta(subId, subNome);
         });
 
+        // ── Rename inline ──────────────────────────────────────────────
+        // Input oculto que substitui o nomeEl durante a edição
+        const renameInput = document.createElement('input');
+        renameInput.classList.add('subpasta-rename-input');
+        renameInput.style.display = 'none';
+        renameInput.maxLength = 50;
+
+        // Botão ✏ no canto superior esquerdo do card – ativa o modo de edição
+        const renomear = document.createElement('button');
+        renomear.classList.add('subpasta-renomear');
+        renomear.textContent = '✏';
+        renomear.title = 'Renomear subpasta';
+
+        let _renameAtivo = false;
+
+        renomear.addEventListener('click', (e) => {
+            e.stopPropagation();
+            _renameAtivo = true;
+            nomeEl.style.display = 'none';
+            renameInput.value = nomeEl.textContent;
+            renameInput.style.display = '';
+            renomear.style.display = 'none';
+            renameInput.focus();
+            renameInput.select();
+        });
+
+        function cancelarRenomear() {
+            renameInput.style.display = 'none';
+            nomeEl.style.display = '';
+            renomear.style.display = '';
+        }
+
+        function confirmarRenomear() {
+            const novoNome = renameInput.value.trim();
+            cancelarRenomear();
+            if (!novoNome || novoNome === nomeEl.textContent) return;
+            fetch('/subpastas/' + subId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: novoNome })
+            })
+            .then(r => r.json())
+            .then(data => {
+                nomeEl.textContent = data.nome;
+                // Atualiza o breadcrumb se esta subpasta estiver aberta
+                if (subpastaAtual && subpastaAtual.id == subId) {
+                    subpastaAtual.nome = data.nome;
+                    breadcrumbTexto.textContent = pastaSelecionada.nome + '  /  📂 ' + data.nome;
+                }
+                marcarAlteracao();
+            })
+            .catch(err => console.error('Erro ao renomear subpasta:', err));
+        }
+
+        renameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter')  { e.preventDefault(); _renameAtivo = false; confirmarRenomear(); }
+            if (e.key === 'Escape') { _renameAtivo = false; cancelarRenomear(); }
+        });
+        renameInput.addEventListener('blur', () => {
+            if (_renameAtivo) { _renameAtivo = false; cancelarRenomear(); }
+        });
+
         card.appendChild(icone);
         card.appendChild(nomeEl);
+        card.appendChild(renameInput);
+        card.appendChild(renomear);
         card.appendChild(excluir);
         listaSubpastas.appendChild(card);
         verificarTextoVazio(); // Esconde o texto quando a primeira subpasta é adicionada

@@ -365,6 +365,22 @@ app.delete("/pastas/:id/subpastas/:subId", (req, res) => {
   });
 });
 
+// Renomeia uma subpasta
+app.put("/subpastas/:id", (req, res) => {
+  const { nome } = req.body;
+  if (!nome || nome.trim() === "")
+    return res.status(400).json({ error: "Nome é obrigatório" });
+
+  db.run(
+    "UPDATE subpastas SET nome = ? WHERE id = ?",
+    [nome.trim(), req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: Number(req.params.id), nome: nome.trim() });
+    }
+  );
+});
+
 // ── Rotas: Arquivos de uma subpasta ──────────────────────────────────────────────
 
 // Lista os arquivos de uma subpasta específica

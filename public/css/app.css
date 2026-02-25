@@ -606,6 +606,23 @@ body {
     color: rgb(248,29,29);
 }
 
+/* Botão "↩ Raiz" – mover arquivo de volta para a raiz da pasta (só aparece dentro de subpasta) */
+.arquivo-mover-raiz {
+    color: rgba(120,190,255,0.9);
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(120,190,255,0.35);
+    transition: background 0.2s;
+    cursor: pointer;
+    margin-left: 4px;
+}
+.arquivo-mover-raiz:hover {
+    background: rgba(120,190,255,0.12);
+}
+
 /* ── Subpastas ────────────────────────────────────────────────────
 
    Seção que aparece dentro do modal de pasta, mostrando as pastas
@@ -723,6 +740,45 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+}
+
+/* Botão ✏ no canto superior esquerdo do card de subpasta – aparece ao passar o mouse */
+.subpasta-renomear {
+    position: absolute;
+    top: 5px;
+    left: 7px;
+    background: transparent;
+    border: none;
+    color: rgba(200,144,1,0.5);
+    font-size: 11px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s, opacity 0.2s;
+    opacity: 0;
+}
+.subpasta-card:hover .subpasta-renomear {
+    opacity: 1;
+}
+.subpasta-renomear:hover {
+    color: rgb(200,144,1);
+    background: rgba(200,144,1,0.12);
+}
+
+/* Input inline de renomear subpasta */
+.subpasta-rename-input {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(200,144,1,0.55);
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: center;
+    width: 90%;
+    padding: 2px 6px;
+    outline: none;
+    margin-top: 4px;
 }
 
 /* Botão ✕ no canto superior direito do card de subpasta */
