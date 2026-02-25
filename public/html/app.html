@@ -230,10 +230,19 @@
         <div id="listaArquivos"></div>
       </div>
 
-      <!-- Rodapé: Upload+ adiciona arquivos, Sair fecha o modal -->
+      <!-- Rodapé: Upload+ adiciona arquivos, Concluído fecha o modal -->
       <div id="uploadFooter">
         <button id="btnUploadMais" class="btn">Upload+</button>
-        <button id="btnSair"       class="btn btn-sair">Sair</button>
+        <div id="footerAcoes">
+          <!-- Confirmação inline exibida quando o usuário clica em Descartar -->
+          <div id="confirmDescarte" class="hidden">
+            <span>Descartar todas as alterações feitas?</span>
+            <button id="btnConfirmarDescarte" class="btn btn-danger">Sim, descartar</button>
+            <button id="btnCancelarDescarte"  class="btn btn-sair">Não</button>
+          </div>
+          <button id="btnDescartarAlteracoes" class="btn btn-descartar" disabled>Descartar alterações</button>
+          <button id="btnSair" class="btn btn-sair">Concluído</button>
+        </div>
       </div>
 
     </div>

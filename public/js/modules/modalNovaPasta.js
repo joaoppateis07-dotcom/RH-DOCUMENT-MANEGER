@@ -122,8 +122,14 @@ export function initModalNovaPasta() {
     const fileInput        = document.getElementById('fileInput');
     // Botão "Upload+" no rodapé do modal – abre o seletor de arquivos
     const btnUploadMais    = document.getElementById('btnUploadMais');
-    // Botão "Sair" no rodapé do modal – fecha o modal
-    const btnSair          = document.getElementById('btnSair');
+    // Botão "Concluído" no rodapé do modal – fecha o modal
+    const btnSair                = document.getElementById('btnSair');
+    // Botão "Descartar alterações" – habilitado apenas quando há alterações pendentes
+    const btnDescartarAlteracoes = document.getElementById('btnDescartarAlteracoes');
+    // Área de confirmação de descarte (inline no footer)
+    const confirmDescarte        = document.getElementById('confirmDescarte');
+    const btnConfirmarDescarte   = document.getElementById('btnConfirmarDescarte');
+    const btnCancelarDescarte    = document.getElementById('btnCancelarDescarte');
     // Div onde os cards dos arquivos adicionados são inseridos
     const listaArquivos    = document.getElementById('listaArquivos');
     // Texto instrucional dentro da área de upload ("Clique em Upload+...")
@@ -162,6 +168,14 @@ export function initModalNovaPasta() {
     // Estado atual da navegação: null = raiz da pasta, objeto = dentro de uma subpasta
     // { id, nome } da subpasta atualmente aberta
     let subpastaAtual = null;
+    // Rastreia se o usuário realizou alguma alteração no modal (upload, exclusão, edição, etc.)
+    let alteracoes = false;
+
+    // Ativa o botão "Descartar alterações" ao registrar uma mudança
+    function marcarAlteracao() {
+        alteracoes = true;
+        btnDescartarAlteracoes.disabled = false;
+    }
 
     // ──────────────────────────────────────────────────────────────
     // FUNÇÃO: abrirModalPasta
@@ -181,6 +195,11 @@ export function initModalNovaPasta() {
         // Garante que o formulário de edição começa fechado
         editFormUpload.classList.add('hidden');
 
+        // Reseta o estado de alterações a cada nova abertura de pasta
+        alteracoes = false;
+        btnDescartarAlteracoes.disabled = true;
+        confirmDescarte.classList.add('hidden');
+
         // Exibe o modal removendo a classe 'hidden'
         modalUpload.classList.remove('hidden');
 
@@ -192,6 +211,10 @@ export function initModalNovaPasta() {
 
     function fecharModalUpload() {
         modalUpload.classList.add('hidden');
+        // Reseta estado de alterações
+        alteracoes = false;
+        btnDescartarAlteracoes.disabled = true;
+        confirmDescarte.classList.add('hidden');
         // Remove destaque de seleção da pasta que estava aberta
         document.querySelectorAll('.pasta.selecionada').forEach(p => p.classList.remove('selecionada'));
         document.querySelectorAll('.subpasta-card.selecionada').forEach(c => c.classList.remove('selecionada'));
@@ -282,6 +305,7 @@ export function initModalNovaPasta() {
 
             // Fecha o formulário de edição após salvar com sucesso
             editFormUpload.classList.add('hidden');
+            marcarAlteracao();
         })
         .catch(err => {
             console.error('Erro ao editar pasta:', err);
@@ -442,6 +466,7 @@ export function initModalNovaPasta() {
                 .then(() => {
                     item.remove();
                     verificarTextoVazio(); // Mostra texto se ambas as listas ficarem vazias
+                    marcarAlteracao();
                 })
                 .catch(err => {
                     console.error('Erro ao excluir arquivo:', err);
@@ -528,6 +553,7 @@ export function initModalNovaPasta() {
                         .then(() => {
                             card.remove();
                             verificarTextoVazio();
+                            marcarAlteracao();
                         })
                         .catch(err => {
                             console.error('Erro ao excluir subpasta:', err);
@@ -560,6 +586,7 @@ export function initModalNovaPasta() {
                     .then(() => {
                         // Atualiza contador do card
                         atualizarContagemSubpasta(card, subId);
+                        marcarAlteracao();
                     })
                     .catch(err => console.error('Erro ao dropar arquivo do SO:', err));
                 return;
@@ -584,6 +611,7 @@ export function initModalNovaPasta() {
                 }
                 // Atualiza o contador no card da subpasta destino
                 atualizarContagemSubpasta(card, subId);
+                marcarAlteracao();
             })
             .catch(err => console.error('Erro ao mover arquivo:', err));
         });
@@ -715,6 +743,7 @@ export function initModalNovaPasta() {
             renderizarCardSubpasta(sub.id, sub.nome);
             inputNomeSubpasta.value = '';
             novaSubpastaForm.classList.add('hidden');
+            marcarAlteracao();
         })
         .catch(err => {
             console.error('Erro ao criar subpasta:', err);
@@ -760,6 +789,7 @@ export function initModalNovaPasta() {
             inseridos.forEach(arq => {
                 renderizarCardArquivo(arq.id, arq.nome_original, '/uploads/' + arq.nome_arquivo);
             });
+            marcarAlteracao();
         })
         .catch(err => {
             console.error('Erro ao fazer upload:', err);
@@ -786,8 +816,19 @@ export function initModalNovaPasta() {
         return mapa[ext] || '📎'; // Retorna o ícone correspondente ou clipe genérico
     }
 
-    // Botão "Sair" fecha e limpa o modal
+    // Botão "Concluído" fecha e limpa o modal
     btnSair.addEventListener('click', fecharModalUpload);
+
+    // Botão "Descartar alterações" mostra a confirmação inline no footer
+    btnDescartarAlteracoes.addEventListener('click', () => {
+        confirmDescarte.classList.remove('hidden');
+    });
+
+    // "Sim, descartar" → fecha o modal (dados já persistidos no servidor não são afetados)
+    btnConfirmarDescarte.addEventListener('click', () => fecharModalUpload());
+
+    // "Não" → cancela: esconde a confirmação e mantém o modal aberto
+    btnCancelarDescarte.addEventListener('click', () => confirmDescarte.classList.add('hidden'));
 
     // Clicar no fundo escuro (backdrop) fora da caixa do modal também fecha
     modalUpload.addEventListener('click', (e) => { if (e.target === modalUpload) fecharModalUpload(); });
