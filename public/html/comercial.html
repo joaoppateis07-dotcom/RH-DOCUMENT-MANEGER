@@ -49,6 +49,32 @@
         <input id="inputNomePasta" type="text" placeholder="Nome da pasta">
       </div>
 
+      <div id="modalInput2">
+        <input id="inputCpfFFuncionario" type="text" placeholder="000.000.000-00" maxlength="14" inputmode="numeric">
+      </div>
+
+      <div id="divSelectCaptacao">
+        <select id="selectCaptacao">
+          <option value="__" selected disabled>Selecione a forma de captação</option>
+          <option>MKT BOT</option>
+          <option>AUXILIO URA</option>
+          <option>WHATSAPP</option>
+          <option>INDICAÇÃO</option>
+          <option>AUXILIO SMS</option>
+          <option>MKT NOVO</option>
+          <option>DISCADOR NOVO</option>
+        </select>
+      </div>
+
+      <div id="divSelectParceiro">
+        <select id="selectParceiro">
+          <option value="__" selected disabled>Selecione o parceiro</option>
+          <option>NOVA ERA - AUXILIO ACIDENTE</option>
+          <option>ABL - AUXILIO ACIDENTE</option>
+          <option>TSZ - AUXILIO ACIDENTE</option>
+        </select>
+      </div>
+
       <div id="btnCriar&Cancelar">
         <button id="btnCancelarPasta" class="btn btnCancelarPasta">CANCELAR</button>
         <button id="btnCriarPasta" class="btn">CRIAR</button>
@@ -63,12 +89,32 @@
       <div id="uploadHeader">
         <div id="uploadPastaInfo">
           <span id="uploadInfoNome"></span>
+          <span id="uploadInfoCpf"></span>
+          <span id="uploadInfoCaptacao"></span>
+          <span id="uploadInfoParceiro"></span>
         </div>
         <button id="btnEditar" class="btn btn-editar">Editar</button>
       </div>
 
       <div id="editFormUpload" class="hidden">
         <input id="editNome" type="text" placeholder="Nome da pasta">
+        <input id="editCpf" type="text" placeholder="000.000.000-00" maxlength="14" inputmode="numeric">
+        <select id="editCaptacao">
+          <option value="__" selected disabled>Selecione a forma de captação</option>
+          <option>MKT BOT</option>
+          <option>AUXILIO URA</option>
+          <option>WHATSAPP</option>
+          <option>INDICAÇÃO</option>
+          <option>AUXILIO SMS</option>
+          <option>MKT NOVO</option>
+          <option>DISCADOR NOVO</option>
+        </select>
+        <select id="editParceiro">
+          <option value="__" selected disabled>Selecione o parceiro</option>
+          <option>NOVA ERA - AUXILIO ACIDENTE</option>
+          <option>ABL - AUXILIO ACIDENTE</option>
+          <option>TSZ - AUXILIO ACIDENTE</option>
+        </select>
 
         <div id="editBtns">
           <button id="btnCancelarEdicao" class="btn btnCancelarPasta">CANCELAR</button>

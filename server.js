@@ -22,6 +22,9 @@ db.run(
       console.log("Tabela 'pastas' pronta ✅");
       // Adiciona coluna modulo para separar RH e COMERCIAL
       db.run(`ALTER TABLE pastas ADD COLUMN modulo TEXT DEFAULT 'RH'`, () => {});
+      // Colunas específicas do módulo Comercial
+      db.run(`ALTER TABLE pastas ADD COLUMN captacao TEXT DEFAULT ''`, () => {});
+      db.run(`ALTER TABLE pastas ADD COLUMN parceiro TEXT DEFAULT ''`, () => {});
     }
   }
 );
@@ -175,7 +178,7 @@ app.get("/pastas", (req, res) => {
 
 // Cria uma nova pasta
 app.post("/pastas", (req, res) => {
-  const { nome, cpf, cargo, setor, modulo } = req.body;
+  const { nome, cpf, cargo, setor, captacao, parceiro, modulo } = req.body;
   const mod = modulo || 'RH';
 
   if (mod === 'RH') {
@@ -184,14 +187,20 @@ app.post("/pastas", (req, res) => {
   } else {
     if (!nome)
       return res.status(400).json({ error: "Nome é obrigatório" });
+    if (!cpf)
+      return res.status(400).json({ error: "CPF é obrigatório" });
+    if (!captacao)
+      return res.status(400).json({ error: "Forma de captação é obrigatória" });
+    if (!parceiro)
+      return res.status(400).json({ error: "Parceiro é obrigatório" });
   }
 
   db.run(
-    "INSERT INTO pastas (nome, cpf, cargo, setor, modulo) VALUES (?, ?, ?, ?, ?)",
-    [nome, cpf || '', cargo || '', setor || '', mod],
+    "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: this.lastID, nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', modulo: mod });
+      res.status(201).json({ id: this.lastID, nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', captacao: captacao || '', parceiro: parceiro || '', modulo: mod });
     }
   );
 });
@@ -231,7 +240,7 @@ app.delete("/pastas/:id", (req, res) => {
 
 // Atualiza os dados de uma pasta existente
 app.put("/pastas/:id", (req, res) => {
-  const { nome, cpf, cargo, setor, modulo } = req.body;
+  const { nome, cpf, cargo, setor, captacao, parceiro, modulo } = req.body;
   const { id } = req.params;
   const mod = modulo || 'RH';
 
@@ -241,14 +250,20 @@ app.put("/pastas/:id", (req, res) => {
   } else {
     if (!nome)
       return res.status(400).json({ error: "Nome é obrigatório" });
+    if (!cpf)
+      return res.status(400).json({ error: "CPF é obrigatório" });
+    if (!captacao)
+      return res.status(400).json({ error: "Forma de captação é obrigatória" });
+    if (!parceiro)
+      return res.status(400).json({ error: "Parceiro é obrigatório" });
   }
 
   db.run(
-    "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=?, modulo=? WHERE id=?",
-    [nome, cpf || '', cargo || '', setor || '', mod, id],
+    "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=?, captacao=?, parceiro=?, modulo=? WHERE id=?",
+    [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod, id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: Number(id), nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', modulo: mod });
+      res.json({ id: Number(id), nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', captacao: captacao || '', parceiro: parceiro || '', modulo: mod });
     }
   );
 });

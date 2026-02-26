@@ -43,9 +43,12 @@ export function initModalNovaPasta(options = {}) {
     const NomePasta        = document.getElementById('inputNomePasta');
     // Campo de texto para o CPF do funcionário
     const CpfFFuncionario  = document.getElementById('inputCpfFFuncionario');
-    // Select para o cargo do funcionário
+    // Selects comerciais
+    const Captacao         = document.getElementById('selectCaptacao');
+    const Parceiro        = document.getElementById('selectParceiro');
+    // Select para o cargo do funcionário (RH)
     const Cargo            = document.getElementById('selectCargo');
-    // Select para o setor do funcionário
+    // Select para o setor do funcionário (RH)
     const Setor            = document.getElementById('selectSetor');
     // Container onde os cards das pastas criadas serão exibidos na tela
     const listaPastas      = document.getElementById('listaPastas');
@@ -104,6 +107,8 @@ export function initModalNovaPasta(options = {}) {
     const uploadInfoCpf    = document.getElementById('uploadInfoCpf');
     const uploadInfoCargo  = document.getElementById('uploadInfoCargo');
     const uploadInfoSetor  = document.getElementById('uploadInfoSetor');
+    const uploadInfoCaptacao = document.getElementById('uploadInfoCaptacao');
+    const uploadInfoParceiro = document.getElementById('uploadInfoParceiro');
     // Botão azul "Editar" no cabeçalho do modal – mostra/esconde o form de edição
     const btnEditar        = document.getElementById('btnEditar');
     // Formulário de edição (nome, CPF, cargo, setor) – fica oculto até clicar em Editar
@@ -113,6 +118,8 @@ export function initModalNovaPasta(options = {}) {
     const editCpf          = document.getElementById('editCpf');
     const editCargo        = document.getElementById('editCargo');
     const editSetor        = document.getElementById('editSetor');
+    const editCaptacao     = document.getElementById('editCaptacao');
+    const editParceiro     = document.getElementById('editParceiro');
     // Botão "SALVAR" no formulário de edição
     const btnSalvarEdicao  = document.getElementById('btnSalvarEdicao');
     // Botão "CANCELAR" no formulário de edição
@@ -221,6 +228,10 @@ export function initModalNovaPasta(options = {}) {
             uploadInfoCpf.textContent   = 'CPF: '    + mascaraCpf(dados.cpf);
             uploadInfoCargo.textContent = 'Cargo: '  + dados.cargo;
             uploadInfoSetor.textContent = 'Setor: '  + dados.setor;
+        } else {
+            if (uploadInfoCpf) uploadInfoCpf.textContent = 'CPF: ' + mascaraCpf(dados.cpf);
+            if (uploadInfoCaptacao) uploadInfoCaptacao.textContent = 'Captação: ' + (dados.captacao || '');
+            if (uploadInfoParceiro) uploadInfoParceiro.textContent = 'Parceiro: ' + (dados.parceiro || '');
         }
 
         // Garante que o formulário de edição começa fechado
@@ -280,6 +291,10 @@ export function initModalNovaPasta(options = {}) {
                 editCpf.value   = mascaraCpf(pastaSelecionada.cpf);
                 editCargo.value = pastaSelecionada.cargo;
                 editSetor.value = pastaSelecionada.setor;
+            } else {
+                if (editCpf) editCpf.value = mascaraCpf(pastaSelecionada.cpf);
+                if (editCaptacao) editCaptacao.value = pastaSelecionada.captacao || '__';
+                if (editParceiro) editParceiro.value = pastaSelecionada.parceiro || '__';
             }
             editFormUpload.classList.remove('hidden');
         } else {
@@ -303,6 +318,8 @@ export function initModalNovaPasta(options = {}) {
         let cpf = '';
         let cargo = '';
         let setor = '';
+        let captacao = '';
+        let parceiro = '';
 
         if (!isComercial) {
             if (editCpf.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
@@ -311,6 +328,13 @@ export function initModalNovaPasta(options = {}) {
             cpf = editCpf.value.trim();
             cargo = editCargo.value;
             setor = editSetor.value;
+        } else {
+            if (editCpf && editCpf.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
+            if (editCaptacao && editCaptacao.value === '__') { alert('Selecione a forma de captação'); return; }
+            if (editParceiro && editParceiro.value === '__') { alert('Selecione o parceiro'); return; }
+            cpf = editCpf ? editCpf.value.trim() : '';
+            captacao = editCaptacao ? editCaptacao.value : '';
+            parceiro = editParceiro ? editParceiro.value : '';
         }
 
         // Captura o ID da pasta que está sendo editada
@@ -321,17 +345,17 @@ export function initModalNovaPasta(options = {}) {
         fetch('/pastas/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf, cargo, setor, modulo: moduloAtual })
+            body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual })
         })
         .then(r => r.json())
         .then(() => {
             // Atualiza os dados no array local (sem precisar recarregar a página)
             const idx = pastas.findIndex(p => p.id == id);
             if (idx !== -1) {
-                pastas[idx] = { ...pastas[idx], nome, cpf, cargo, setor };
+                pastas[idx] = { ...pastas[idx], nome, cpf, cargo, setor, captacao, parceiro };
             }
             // Atualiza a variável da pasta atualmente selecionada
-            pastaSelecionada = { ...pastaSelecionada, nome, cpf, cargo, setor };
+            pastaSelecionada = { ...pastaSelecionada, nome, cpf, cargo, setor, captacao, parceiro };
 
             // Atualiza o texto do card na lista de pastas na tela principal
             const pastaEl = listaPastas.querySelector(`[data-id="${id}"]`);
@@ -349,6 +373,10 @@ export function initModalNovaPasta(options = {}) {
                 uploadInfoCpf.textContent   = 'CPF: '   + mascaraCpf(cpf);
                 uploadInfoCargo.textContent = 'Cargo: ' + cargo;
                 uploadInfoSetor.textContent = 'Setor: ' + setor;
+            } else {
+                if (uploadInfoCpf) uploadInfoCpf.textContent = 'CPF: ' + mascaraCpf(cpf);
+                if (uploadInfoCaptacao) uploadInfoCaptacao.textContent = 'Captação: ' + captacao;
+                if (uploadInfoParceiro) uploadInfoParceiro.textContent = 'Parceiro: ' + parceiro;
             }
 
             // Fecha o formulário de edição após salvar com sucesso
@@ -982,6 +1010,8 @@ export function initModalNovaPasta(options = {}) {
         let cpf = '';
         let cargo = '';
         let setor = '';
+        let captacao = '';
+        let parceiro = '';
 
         if (!isComercial) {
             if (CpfFFuncionario.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
@@ -990,6 +1020,13 @@ export function initModalNovaPasta(options = {}) {
             cpf = CpfFFuncionario.value.trim();
             cargo = Cargo.value;
             setor = Setor.value;
+        } else {
+            if (CpfFFuncionario && CpfFFuncionario.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
+            if (Captacao && Captacao.value === '__') { alert('Selecione a forma de captação'); return; }
+            if (Parceiro && Parceiro.value === '__') { alert('Selecione o parceiro'); return; }
+            cpf = CpfFFuncionario ? CpfFFuncionario.value.trim() : '';
+            captacao = Captacao ? Captacao.value : '';
+            parceiro = Parceiro ? Parceiro.value : '';
         }
 
         // Captura os valores dos campos
@@ -999,7 +1036,7 @@ export function initModalNovaPasta(options = {}) {
         fetch('/pastas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf, cargo, setor, modulo: moduloAtual })
+            body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual })
         })
         .then(r => r.json())
         .then(data => {
@@ -1016,6 +1053,10 @@ export function initModalNovaPasta(options = {}) {
                 CpfFFuncionario.value = '';
                 Cargo.value = '__';
                 Setor.value = '__';
+            } else {
+                if (CpfFFuncionario) CpfFFuncionario.value = '';
+                if (Captacao) Captacao.value = '__';
+                if (Parceiro) Parceiro.value = '__';
             }
 
             // Fecha o modal de criação
