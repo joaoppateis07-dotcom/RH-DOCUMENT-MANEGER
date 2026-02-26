@@ -25,6 +25,8 @@ db.run(
       // Colunas específicas do módulo Comercial
       db.run(`ALTER TABLE pastas ADD COLUMN captacao TEXT DEFAULT ''`, () => {});
       db.run(`ALTER TABLE pastas ADD COLUMN parceiro TEXT DEFAULT ''`, () => {});
+      // Data/hora de criação da pasta (para o card "Registros do Dia")
+      db.run(`ALTER TABLE pastas ADD COLUMN criado_em TEXT DEFAULT (datetime('now'))`, () => {});
     }
   }
 );
@@ -167,6 +169,22 @@ app.get("/",       (_req, res) => res.sendFile(path.join(__dirname, "public", "i
 
 // ── Rotas: Pastas ──────────────────────────────────────────────────────────────
 
+// Retorna estatísticas de pastas: total e quantas foram criadas hoje
+// Usado pelos cards de resumo no topo dos módulos
+app.get("/pastas/stats", (req, res) => {
+  const modulo = req.query.modulo || 'RH';
+  // Data de hoje no formato YYYY-MM-DD (SQLite usa ISO 8601 em criado_em)
+  const hoje = new Date().toISOString().slice(0, 10);
+  db.get(
+    "SELECT COUNT(*) AS total, SUM(CASE WHEN date(criado_em) = ? THEN 1 ELSE 0 END) AS hoje FROM pastas WHERE modulo = ?",
+    [hoje, modulo],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ total: row.total || 0, hoje: row.hoje || 0 });
+    }
+  );
+});
+
 // Lista todas as pastas (usada ao carregar a página)
 app.get("/pastas", (req, res) => {
   const modulo = req.query.modulo || 'RH';
@@ -196,7 +214,7 @@ app.post("/pastas", (req, res) => {
   }
 
   db.run(
-    "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
     [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });

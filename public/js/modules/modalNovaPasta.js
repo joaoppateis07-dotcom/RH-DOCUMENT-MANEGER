@@ -471,6 +471,8 @@ export function initModalNovaPasta(options = {}) {
                         if (idx !== -1) pastas.splice(idx, 1);
                         // Remove o card do DOM
                         if (cardEl) cardEl.remove();
+                        // Atualiza os cards de resumo com o novo total
+                        atualizarStats();
                     })
                     .catch(err => {
                         console.error('Erro ao excluir pasta:', err);
@@ -536,18 +538,31 @@ export function initModalNovaPasta(options = {}) {
         excluir.title = 'Excluir arquivo';
         excluir.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!confirm('Excluir "' + nomeOriginal + '"?')) return;
-            fetch('/pastas/' + pastaSelecionada.id + '/arquivos/' + arquivoId, { method: 'DELETE' })
-                .then(r => r.json())
-                .then(() => {
-                    item.remove();
-                    verificarTextoVazio(); // Mostra texto se ambas as listas ficarem vazias
-                    marcarAlteracao();
-                })
-                .catch(err => {
-                    console.error('Erro ao excluir arquivo:', err);
-                    alert('Não foi possível excluir o arquivo.');
-                });
+
+            // Esconde o card imediatamente e oferece toast de desfazer
+            item.style.display = 'none';
+
+            mostrarToastUndo(
+                'Arquivo "' + nomeOriginal + '" excluído.',
+                // Desfazer: reexibe o card
+                () => { item.style.display = ''; },
+                // Confirmar: de fato remove do servidor e do DOM
+                () => {
+                    fetch('/pastas/' + pastaSelecionada.id + '/arquivos/' + arquivoId, { method: 'DELETE' })
+                        .then(r => r.json())
+                        .then(() => {
+                            item.remove();
+                            verificarTextoVazio(); // Mostra texto se ambas as listas ficarem vazias
+                            marcarAlteracao();
+                        })
+                        .catch(err => {
+                            console.error('Erro ao excluir arquivo:', err);
+                            // Em caso de erro, restaura o card
+                            item.style.display = '';
+                        });
+                },
+                5000
+            );
         });
 
         // Monta o card: ícone + nome + botão abrir + [↩ Raiz se dentro de subpasta] + botão excluir
@@ -1061,6 +1076,8 @@ export function initModalNovaPasta(options = {}) {
 
             // Fecha o modal de criação
             modalNovaPasta.classList.add('hidden');
+            // Atualiza os cards de resumo com o novo total
+            atualizarStats();
         })
         .catch(err => {
             console.error('Erro ao criar pasta:', err);
@@ -1122,4 +1139,31 @@ export function initModalNovaPasta(options = {}) {
 
     // Inicia o carregamento das pastas assim que o módulo é inicializado
     carregarPastas();
+
+    // ──────────────────────────────────────────────────────────────
+    // FUNÇÃO: atualizarStats
+    // Busca o total de pastas e as criadas hoje no servidor
+    // e preenche os cards de resumo no topo da página.
+    // Funciona apenas quando os elementos existem no HTML
+    // (Módulo Comercial) — no módulo RH os elementos não existem
+    // e a função retorna silenciosamente.
+    // ──────────────────────────────────────────────────────────────
+    function atualizarStats() {
+        const elTotal = document.getElementById('cardTotalPastas');
+        const elHoje  = document.getElementById('cardHojePastas');
+        // Se os cards não existem na página, não há nada a fazer
+        if (!elTotal && !elHoje) return;
+
+        fetch('/pastas/stats?modulo=' + moduloAtual)
+            .then(r => r.json())
+            .then(data => {
+                // Atualiza o valor exibido em cada card
+                if (elTotal) elTotal.textContent = data.total;
+                if (elHoje)  elHoje.textContent  = data.hoje;
+            })
+            .catch(err => console.error('Erro ao buscar stats:', err));
+    }
+
+    // Atualiza os cards de resumo assim que as pastas forem carregadas
+    atualizarStats();
 }
