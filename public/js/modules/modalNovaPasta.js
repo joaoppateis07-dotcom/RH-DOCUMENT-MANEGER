@@ -9,7 +9,9 @@
 //  - Editar as informações de uma pasta já existente
 //  - Adicionar arquivos à pasta e permitir abri-los
 // ============================================================
-export function initModalNovaPasta() {
+export function initModalNovaPasta(options = {}) {
+    const isComercial = options.isComercial || false;
+    const moduloAtual = isComercial ? 'COMERCIAL' : 'RH';
 
     // Lista em memória com todas as pastas carregadas/criadas nesta sessão.
     // Usamos ela para encontrar os dados de uma pasta pelo ID sem ir ao servidor.
@@ -66,7 +68,8 @@ export function initModalNovaPasta() {
             const pasta = pastas.find(p => p.id == card.dataset.id);
             if (!pasta) return;
             const bate = pasta.nome.toLowerCase().includes(termo) ||
-                         pasta.cpf.toLowerCase().includes(termo);
+                         (pasta.cpf && pasta.cpf.toLowerCase().includes(termo)) ||
+                         (pasta.cpf && pasta.cpf.replace(/\D/g,'').includes(termo.replace(/\D/g,'')));
             card.style.display = bate ? '' : 'none';
             if (bate) visiveis++;
         });
@@ -182,6 +185,7 @@ export function initModalNovaPasta() {
     // Formata a string removendo não-dígitos e aplicando 000.000.000-00
     // ──────────────────────────────────────────────────────────────
     function mascaraCpf(v) {
+        if (!v) return '';
         return v
             .replace(/\D/g, '')           // remove tudo que não é dígito
             .slice(0, 11)                 // limita a 11 dígitos
@@ -199,8 +203,8 @@ export function initModalNovaPasta() {
         e.target.setSelectionRange(inicio + diff, inicio + diff);
     }
 
-    CpfFFuncionario.addEventListener('input', onCpfInput);
-    editCpf.addEventListener('input', onCpfInput);
+    if (CpfFFuncionario) CpfFFuncionario.addEventListener('input', onCpfInput);
+    if (editCpf) editCpf.addEventListener('input', onCpfInput);
 
     // ──────────────────────────────────────────────────────────────
     // FUNÇÃO: abrirModalPasta
@@ -213,9 +217,11 @@ export function initModalNovaPasta() {
 
         // Preenche os spans do cabeçalho com as informações da pasta
         uploadInfoNome.textContent  = 'Nome: '   + dados.nome;
-        uploadInfoCpf.textContent   = 'CPF: '    + dados.cpf;
-        uploadInfoCargo.textContent = 'Cargo: '  + dados.cargo;
-        uploadInfoSetor.textContent = 'Setor: '  + dados.setor;
+        if (!isComercial) {
+            uploadInfoCpf.textContent   = 'CPF: '    + mascaraCpf(dados.cpf);
+            uploadInfoCargo.textContent = 'Cargo: '  + dados.cargo;
+            uploadInfoSetor.textContent = 'Setor: '  + dados.setor;
+        }
 
         // Garante que o formulário de edição começa fechado
         editFormUpload.classList.add('hidden');
@@ -270,9 +276,11 @@ export function initModalNovaPasta() {
         if (editFormUpload.classList.contains('hidden')) {
             // Preenche os campos com os dados atuais da pasta selecionada
             editNome.value  = pastaSelecionada.nome;
-            editCpf.value   = mascaraCpf(pastaSelecionada.cpf);
-            editCargo.value = pastaSelecionada.cargo;
-            editSetor.value = pastaSelecionada.setor;
+            if (!isComercial) {
+                editCpf.value   = mascaraCpf(pastaSelecionada.cpf);
+                editCargo.value = pastaSelecionada.cargo;
+                editSetor.value = pastaSelecionada.setor;
+            }
             editFormUpload.classList.remove('hidden');
         } else {
             // Fecha o formulário de edição sem salvar
@@ -291,22 +299,29 @@ export function initModalNovaPasta() {
     btnSalvarEdicao.addEventListener('click', () => {
         // Validação: nenhum campo pode estar vazio ou sem seleção
         if (editNome.value.trim() === '')  { alert('Preencha o nome');       return; }
-        if (editCpf.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
-        if (editCargo.value === '__')      { alert('Selecione um cargo');     return; }
-        if (editSetor.value === '__')      { alert('Selecione um setor');     return; }
+        
+        let cpf = '';
+        let cargo = '';
+        let setor = '';
+
+        if (!isComercial) {
+            if (editCpf.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
+            if (editCargo.value === '__')      { alert('Selecione um cargo');     return; }
+            if (editSetor.value === '__')      { alert('Selecione um setor');     return; }
+            cpf = editCpf.value.trim();
+            cargo = editCargo.value;
+            setor = editSetor.value;
+        }
 
         // Captura o ID da pasta que está sendo editada
         const id    = pastaSelecionada.id;
         const nome  = editNome.value.trim();
-        const cpf   = editCpf.value.trim();
-        const cargo = editCargo.value;
-        const setor = editSetor.value;
 
         // Envia a requisição PUT para o servidor atualizar no banco de dados
         fetch('/pastas/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf, cargo, setor })
+            body: JSON.stringify({ nome, cpf, cargo, setor, modulo: moduloAtual })
         })
         .then(r => r.json())
         .then(() => {
@@ -320,13 +335,21 @@ export function initModalNovaPasta() {
 
             // Atualiza o texto do card na lista de pastas na tela principal
             const pastaEl = listaPastas.querySelector(`[data-id="${id}"]`);
-            if (pastaEl) pastaEl.textContent = nome + ' - ' + cpf + ' - ' + cargo + ' - ' + setor;
+            if (pastaEl) {
+                if (isComercial) {
+                    pastaEl.textContent = nome;
+                } else {
+                    pastaEl.textContent = nome + ' - ' + mascaraCpf(cpf) + ' - ' + cargo + ' - ' + setor;
+                }
+            }
 
             // Atualiza os spans do cabeçalho do modal com os novos valores
             uploadInfoNome.textContent  = 'Nome: '  + nome;
-            uploadInfoCpf.textContent   = 'CPF: '   + cpf;
-            uploadInfoCargo.textContent = 'Cargo: ' + cargo;
-            uploadInfoSetor.textContent = 'Setor: ' + setor;
+            if (!isComercial) {
+                uploadInfoCpf.textContent   = 'CPF: '   + mascaraCpf(cpf);
+                uploadInfoCargo.textContent = 'Cargo: ' + cargo;
+                uploadInfoSetor.textContent = 'Setor: ' + setor;
+            }
 
             // Fecha o formulário de edição após salvar com sucesso
             editFormUpload.classList.add('hidden');
@@ -955,21 +978,28 @@ export function initModalNovaPasta() {
     btnCriarPasta.addEventListener('click', () => {
         // Validação: todos os campos são obrigatórios
         if (NomePasta.value.trim() === '')      { alert('Preencha o nome da pasta');       return; }
-        if (CpfFFuncionario.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
-        if (Cargo.value === '__')               { alert('Selecione um cargo');             return; }
-        if (Setor.value === '__')               { alert('Selecione um setor');             return; }
+        
+        let cpf = '';
+        let cargo = '';
+        let setor = '';
+
+        if (!isComercial) {
+            if (CpfFFuncionario.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
+            if (Cargo.value === '__')               { alert('Selecione um cargo');             return; }
+            if (Setor.value === '__')               { alert('Selecione um setor');             return; }
+            cpf = CpfFFuncionario.value.trim();
+            cargo = Cargo.value;
+            setor = Setor.value;
+        }
 
         // Captura os valores dos campos
         const nome  = NomePasta.value.trim();
-        const cpf   = CpfFFuncionario.value.trim();
-        const cargo = Cargo.value;
-        const setor = Setor.value;
 
         // Envia POST para o servidor salvar a nova pasta no banco SQLite
         fetch('/pastas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf, cargo, setor })
+            body: JSON.stringify({ nome, cpf, cargo, setor, modulo: moduloAtual })
         })
         .then(r => r.json())
         .then(data => {
@@ -982,9 +1012,11 @@ export function initModalNovaPasta() {
 
             // Limpa os campos do formulário para uma próxima criação
             NomePasta.value = '';
-            CpfFFuncionario.value = '';
-            Cargo.value = '__';
-            Setor.value = '__';
+            if (!isComercial) {
+                CpfFFuncionario.value = '';
+                Cargo.value = '__';
+                Setor.value = '__';
+            }
 
             // Fecha o modal de criação
             modalNovaPasta.classList.add('hidden');
@@ -1003,8 +1035,12 @@ export function initModalNovaPasta() {
     // ──────────────────────────────────────────────────────────────
     function criarCardPasta(dados) {
         const el = document.createElement('div');
-        // Texto exibido no card: nome, CPF, cargo e setor
-        el.textContent = dados.nome + ' - ' + dados.cpf + ' - ' + dados.cargo + ' - ' + dados.setor;
+        // Texto exibido no card: nome, CPF (com máscara), cargo e setor
+        if (isComercial) {
+            el.textContent = dados.nome;
+        } else {
+            el.textContent = dados.nome + ' - ' + mascaraCpf(dados.cpf) + ' - ' + dados.cargo + ' - ' + dados.setor;
+        }
         // Aplica o estilo visual do card
         el.classList.add('pasta');
         // Guarda o ID da pasta no atributo data-id para identificar qual abrir
@@ -1032,7 +1068,7 @@ export function initModalNovaPasta() {
     // e cria os cards na tela para cada uma delas.
     // ──────────────────────────────────────────────────────────────
     function carregarPastas() {
-        fetch('/pastas')
+        fetch('/pastas?modulo=' + moduloAtual)
             .then(r => r.json())
             .then(data => {
                 data.forEach(pasta => {

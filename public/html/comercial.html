@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciador de Pastas</title>
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+
+<body>
+
+  <main class="container">
+    <div class="topbar">
+      <div>
+        <h1 id="tituloRhDocumentos">Gerenciador de Pastas</h1>
+        <p id="sistemaDeGestaoDeDocumentos">Sistema de Gestão de Documentos</p>
+      </div>
+      <button id="btnNovaPasta" class="btn">+ NOVA PASTA</button>
+    </div>
+  </main>
+
+  <main class="app">
+    <section id="tela-dashboard">
+
+      <div class="stats">
+        <div class="card card-placeholder"></div>
+        <div class="card card-placeholder"></div>
+      </div>
+
+      <div id="barraPesquisa">
+        <span id="iconePesquisa">🔍</span>
+        <input id="inputPesquisa" type="text" placeholder="Pesquisar por nome..." autocomplete="off">
+        <button id="btnLimparPesquisa" class="hidden">✕</button>
+      </div>
+
+      <p id="semResultados" class="hidden">Nenhuma pasta encontrada para &ldquo;<span id="termoPesquisado"></span>&rdquo;.</p>
+
+      <div id="listaPastas"></div>
+
+    </section>
+  </main>
+
+  <div id="modalNovaPasta" class="modal hidden">
+    <div id="containerCampos" class="modal-box">
+
+      <h2 id="tituloModalNovaPasta">Nova Pasta</h2>
+
+      <div id="modalInput1">
+        <input id="inputNomePasta" type="text" placeholder="Nome da pasta">
+      </div>
+
+      <div id="btnCriar&Cancelar">
+        <button id="btnCancelarPasta" class="btn btnCancelarPasta">CANCELAR</button>
+        <button id="btnCriarPasta" class="btn">CRIAR</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="modalUpload" class="modal hidden">
+    <div id="uploadModalBox" class="modal-box-upload">
+
+      <div id="uploadHeader">
+        <div id="uploadPastaInfo">
+          <span id="uploadInfoNome"></span>
+        </div>
+        <button id="btnEditar" class="btn btn-editar">Editar</button>
+      </div>
+
+      <div id="editFormUpload" class="hidden">
+        <input id="editNome" type="text" placeholder="Nome da pasta">
+
+        <div id="editBtns">
+          <button id="btnCancelarEdicao" class="btn btnCancelarPasta">CANCELAR</button>
+          <button id="btnSalvarEdicao"   class="btn">SALVAR</button>
+          <button id="btnExcluirPasta"   class="btn btn-danger">🗑 Excluir pasta</button>
+        </div>
+      </div>
+
+      <div id="subpastasSection">
+        <div id="subpastasHeader">
+          <span id="subpastasTitulo">📂 Subpastas</span>
+          <button id="btnNovaSubpasta" class="btn btn-sm">Criar pasta</button>
+        </div>
+
+        <div id="novaSubpastaForm" class="hidden">
+          <input id="inputNomeSubpasta" type="text" placeholder="Nome da subpasta" maxlength="60">
+          <button id="btnCriarSubpasta" class="btn">Criar</button>
+          <button id="btnCancelarSubpasta" class="btn btnCancelarPasta">✕</button>
+        </div>
+      </div>
+
+      <div id="breadcrumb" class="hidden">
+        <button id="btnVoltarRaiz" class="btn btn-sm">← Voltar</button>
+        <span id="breadcrumbTexto"></span>
+      </div>
+
+      <div id="uploadArea">
+        <p id="uploadAreaTexto">Clique em "Upload+" para adicionar um arquivo</p>
+
+        <input type="file" id="fileInput" style="display:none" multiple>
+
+        <div id="listaSubpastas"></div>
+
+        <div id="listaArquivos"></div>
+      </div>
+
+      <div id="uploadFooter">
+        <button id="btnUploadMais" class="btn">Upload+</button>
+        <div id="footerAcoes">
+          <div id="confirmDescarte" class="hidden">
+            <span>Descartar todas as alterações feitas?</span>
+            <button id="btnConfirmarDescarte" class="btn btn-danger">Sim, descartar</button>
+            <button id="btnCancelarDescarte"  class="btn btn-sair">Não</button>
+          </div>
+          <button id="btnDescartarAlteracoes" class="btn btn-descartar" disabled>Descartar alterações</button>
+          <button id="btnSair" class="btn btn-sair">Concluído</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toastUndo" class="toast-undo hidden">
+    <span id="toastMensagem"></span>
+    <button id="btnDesfazer" class="toast-btn-desfazer">Desfazer</button>
+    <div id="toastBarra"></div>
+  </div>
+
+  <script type="module" src="../js/comercial.js"></script>
+</body>
+</html>

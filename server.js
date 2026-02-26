@@ -18,7 +18,11 @@ db.run(
   )`,
   (err) => {
     if (err) console.log("Erro criando tabela pastas:", err.message);
-    else console.log("Tabela 'pastas' pronta ✅");
+    else {
+      console.log("Tabela 'pastas' pronta ✅");
+      // Adiciona coluna modulo para separar RH e COMERCIAL
+      db.run(`ALTER TABLE pastas ADD COLUMN modulo TEXT DEFAULT 'RH'`, () => {});
+    }
   }
 );
 
@@ -146,7 +150,7 @@ app.post("/login", (req, res) => {
           @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         </style></head><body>
         <div class="loading"><div class="spinner"></div><p>Autenticando...</p></div>
-        <script>setTimeout(()=>{window.location="/html/app.html"},1200)</script>
+        <script>setTimeout(()=>{window.location="/html/select.html"},1200)</script>
       </body></html>
     `);
   }
@@ -161,8 +165,9 @@ app.get("/",       (_req, res) => res.sendFile(path.join(__dirname, "public", "i
 // ── Rotas: Pastas ──────────────────────────────────────────────────────────────
 
 // Lista todas as pastas (usada ao carregar a página)
-app.get("/pastas", (_req, res) => {
-  db.all("SELECT * FROM pastas ORDER BY id DESC", (err, rows) => {
+app.get("/pastas", (req, res) => {
+  const modulo = req.query.modulo || 'RH';
+  db.all("SELECT * FROM pastas WHERE modulo = ? ORDER BY id DESC", [modulo], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -170,16 +175,23 @@ app.get("/pastas", (_req, res) => {
 
 // Cria uma nova pasta
 app.post("/pastas", (req, res) => {
-  const { nome, cpf, cargo, setor } = req.body;
-  if (!nome || !cpf || !cargo || !setor)
-    return res.status(400).json({ error: "Dados incompletos" });
+  const { nome, cpf, cargo, setor, modulo } = req.body;
+  const mod = modulo || 'RH';
+
+  if (mod === 'RH') {
+    if (!nome || !cpf || !cargo || !setor)
+      return res.status(400).json({ error: "Dados incompletos para RH" });
+  } else {
+    if (!nome)
+      return res.status(400).json({ error: "Nome é obrigatório" });
+  }
 
   db.run(
-    "INSERT INTO pastas (nome, cpf, cargo, setor) VALUES (?, ?, ?, ?)",
-    [nome, cpf, cargo, setor],
+    "INSERT INTO pastas (nome, cpf, cargo, setor, modulo) VALUES (?, ?, ?, ?, ?)",
+    [nome, cpf || '', cargo || '', setor || '', mod],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: this.lastID, nome, cpf, cargo, setor });
+      res.status(201).json({ id: this.lastID, nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', modulo: mod });
     }
   );
 });
@@ -219,17 +231,24 @@ app.delete("/pastas/:id", (req, res) => {
 
 // Atualiza os dados de uma pasta existente
 app.put("/pastas/:id", (req, res) => {
-  const { nome, cpf, cargo, setor } = req.body;
+  const { nome, cpf, cargo, setor, modulo } = req.body;
   const { id } = req.params;
-  if (!nome || !cpf || !cargo || !setor)
-    return res.status(400).json({ error: "Dados incompletos" });
+  const mod = modulo || 'RH';
+
+  if (mod === 'RH') {
+    if (!nome || !cpf || !cargo || !setor)
+      return res.status(400).json({ error: "Dados incompletos para RH" });
+  } else {
+    if (!nome)
+      return res.status(400).json({ error: "Nome é obrigatório" });
+  }
 
   db.run(
-    "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=? WHERE id=?",
-    [nome, cpf, cargo, setor, id],
+    "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=?, modulo=? WHERE id=?",
+    [nome, cpf || '', cargo || '', setor || '', mod, id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: Number(id), nome, cpf, cargo, setor });
+      res.json({ id: Number(id), nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', modulo: mod });
     }
   );
 });

@@ -9,4 +9,4 @@ import { initModalNovaPasta } from './modules/modalNovaPasta.js';
 
 // Chama a função para colocar tudo em funcionamento assim
 // que a página terminar de carregar
-initModalNovaPasta();
+initModalNovaPasta({ isComercial: false });
