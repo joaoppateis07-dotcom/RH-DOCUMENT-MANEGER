@@ -89,10 +89,12 @@ function garantirColunas() {
     const existentes = new Set(cols.map(c => c.name));
 
     const adicionar = [
-      ["modulo",    "TEXT", "DEFAULT 'RH'"],
-      ["captacao",  "TEXT", "DEFAULT ''"],
-      ["parceiro",  "TEXT", "DEFAULT ''"],
-      ["criado_em", "TEXT", ""],           // sem default – preenchido pelo INSERT
+      ["modulo",           "TEXT",    "DEFAULT 'RH'"],
+      ["captacao",         "TEXT",    "DEFAULT ''"],
+      ["parceiro",         "TEXT",    "DEFAULT ''"],
+      ["criado_em",        "TEXT",    ""],           // sem default – preenchido pelo INSERT
+      ["data_nascimento",  "TEXT",    "DEFAULT ''"],
+      ["faltas",           "INTEGER", "DEFAULT 0"],
     ];
 
     adicionar.forEach(([coluna, tipo, def]) => {
@@ -200,21 +202,39 @@ app.get("/",       (_req, res) => res.sendFile(path.join(__dirname, "public", "i
 app.get("/pastas/stats", (req, res) => {
   const modulo = req.query.modulo || 'RH';
   const hoje = new Date().toISOString().slice(0, 10);
-  db.get(
-    "SELECT COUNT(*) AS total, SUM(CASE WHEN date(criado_em) = ? THEN 1 ELSE 0 END) AS hoje FROM pastas WHERE modulo = ?",
-    [hoje, modulo],
-    (err, row) => {
-      if (err) {
-        // criado_em pode não existir ainda (primeira execução após migration) – retorna só o total
-        return db.get(
-          "SELECT COUNT(*) AS total FROM pastas WHERE modulo = ?",
-          [modulo],
-          (_e2, row2) => res.json({ total: (row2 && row2.total) || 0, hoje: 0 })
-        );
+  const mes  = new Date().toISOString().slice(5, 7); // "02" para fevereiro
+
+  if (modulo === 'RH') {
+    db.get(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN data_nascimento != '' AND strftime('%m', data_nascimento) = ? THEN 1 ELSE 0 END) AS aniversarios,
+              SUM(COALESCE(faltas, 0)) AS faltas_total
+       FROM pastas WHERE modulo = 'RH'`,
+      [mes],
+      (err, row) => {
+        if (err) {
+          return db.get("SELECT COUNT(*) AS total FROM pastas WHERE modulo = 'RH'",
+            (_e2, row2) => res.json({ total: (row2 && row2.total) || 0, aniversarios: 0, faltas_total: 0 })
+          );
+        }
+        res.json({ total: row.total || 0, aniversarios: row.aniversarios || 0, faltas_total: row.faltas_total || 0 });
       }
-      res.json({ total: row.total || 0, hoje: row.hoje || 0 });
-    }
-  );
+    );
+  } else {
+    db.get(
+      "SELECT COUNT(*) AS total, SUM(CASE WHEN date(criado_em) = ? THEN 1 ELSE 0 END) AS hoje FROM pastas WHERE modulo = ?",
+      [hoje, modulo],
+      (err, row) => {
+        if (err) {
+          return db.get("SELECT COUNT(*) AS total FROM pastas WHERE modulo = ?",
+            [modulo],
+            (_e2, row2) => res.json({ total: (row2 && row2.total) || 0, hoje: 0 })
+          );
+        }
+        res.json({ total: row.total || 0, hoje: row.hoje || 0 });
+      }
+    );
+  }
 });
 
 // Lista todas as pastas (usada ao carregar a página)
@@ -228,7 +248,7 @@ app.get("/pastas", (req, res) => {
 
 // Cria uma nova pasta
 app.post("/pastas", (req, res) => {
-  const { nome, cpf, cargo, setor, captacao, parceiro, modulo } = req.body;
+  const { nome, cpf, cargo, setor, captacao, parceiro, modulo, data_nascimento, faltas } = req.body;
   const mod = modulo || 'RH';
 
   if (mod === 'RH') {
@@ -245,12 +265,15 @@ app.post("/pastas", (req, res) => {
       return res.status(400).json({ error: "Parceiro é obrigatório" });
   }
 
+  const dn = data_nascimento || '';
+  const ft = parseInt(faltas, 10) || 0;
+
   db.run(
-    "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-    [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod],
+    "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo, criado_em, data_nascimento, faltas) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)",
+    [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod, dn, ft],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: this.lastID, nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', captacao: captacao || '', parceiro: parceiro || '', modulo: mod });
+      res.status(201).json({ id: this.lastID, nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', captacao: captacao || '', parceiro: parceiro || '', modulo: mod, data_nascimento: dn, faltas: ft });
     }
   );
 });
@@ -290,7 +313,7 @@ app.delete("/pastas/:id", (req, res) => {
 
 // Atualiza os dados de uma pasta existente
 app.put("/pastas/:id", (req, res) => {
-  const { nome, cpf, cargo, setor, captacao, parceiro, modulo } = req.body;
+  const { nome, cpf, cargo, setor, captacao, parceiro, modulo, data_nascimento, faltas } = req.body;
   const { id } = req.params;
   const mod = modulo || 'RH';
 
@@ -308,12 +331,15 @@ app.put("/pastas/:id", (req, res) => {
       return res.status(400).json({ error: "Parceiro é obrigatório" });
   }
 
+  const dn = data_nascimento || '';
+  const ft = parseInt(faltas, 10) || 0;
+
   db.run(
-    "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=?, captacao=?, parceiro=?, modulo=? WHERE id=?",
-    [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod, id],
+    "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=?, captacao=?, parceiro=?, modulo=?, data_nascimento=?, faltas=? WHERE id=?",
+    [nome, cpf || '', cargo || '', setor || '', captacao || '', parceiro || '', mod, dn, ft, id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: Number(id), nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', captacao: captacao || '', parceiro: parceiro || '', modulo: mod });
+      res.json({ id: Number(id), nome, cpf: cpf || '', cargo: cargo || '', setor: setor || '', captacao: captacao || '', parceiro: parceiro || '', modulo: mod, data_nascimento: dn, faltas: ft });
     }
   );
 });

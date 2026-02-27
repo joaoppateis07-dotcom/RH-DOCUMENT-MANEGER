@@ -39,14 +39,16 @@
       <!-- Cards de estatísticas (números rápidos na parte de cima) -->
       <div class="stats">
         <div class="card">
-          <!-- Título do card -->
-          <div class="card-title">Total de Documentos</div>
-          <!-- Valor numérico exibido no card (atualizado via JS futuramente) -->
-          <div class="card-value">0</div>
+          <div class="card-title">Total Funcionários</div>
+          <div class="card-value" id="cardTotalFuncionarios">0</div>
         </div>
         <div class="card">
-          <div class="card-title">Total Funcionarios</div>
-          <div class="card-value">0</div>
+          <div class="card-title">Aniversários do Mês</div>
+          <div class="card-value" id="cardAniversarios">0</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Faltas</div>
+          <div class="card-value" id="cardFaltas">0</div>
         </div>
       </div>
 
@@ -118,7 +120,15 @@
         </select>
       </div>
 
-      <!-- Botões de ação: CANCELAR fecha o modal, CRIAR envia os dados -->
+      <!-- Campo: Data de nascimento -->
+      <div id="divDataNascimento">
+        <input id="inputDataNascimento" type="date" placeholder="Data de Nascimento">
+      </div>
+
+      <!-- Campo: Número de faltas -->
+      <div id="divFaltas">
+        <input id="inputFaltas" type="number" placeholder="Faltas" min="0" value="0">
+      </div>
       <div id="btnCriar&Cancelar">
         <button id="btnCancelarPasta" class="btn btnCancelarPasta">CANCELAR</button>
         <button id="btnCriarPasta" class="btn">CRIAR</button>
@@ -144,6 +154,8 @@
           <span id="uploadInfoCpf"></span>    <!-- CPF -->
           <span id="uploadInfoCargo"></span>  <!-- Cargo -->
           <span id="uploadInfoSetor"></span>  <!-- Setor -->
+          <span id="uploadInfoDataNascimento"></span>  <!-- Data de Nascimento -->
+          <span id="uploadInfoFaltas"></span>           <!-- Faltas -->
         </div>
         <!-- Botão azul que mostra/esconde o formulário de edição abaixo -->
         <button id="btnEditar" class="btn btn-editar">Editar</button>
@@ -180,6 +192,10 @@
           <option>ADM</option>
           <option>DIRETORIA</option>
         </select>
+
+        <!-- Edição: Data de nascimento e faltas -->
+        <input id="editDataNascimento" type="date">
+        <input id="editFaltas" type="number" min="0" placeholder="Faltas">
 
         <!-- Botões: CANCELAR fecha o form sem salvar, SALVAR envia PUT ao servidor -->
         <div id="editBtns">

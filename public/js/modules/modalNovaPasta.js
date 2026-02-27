@@ -50,6 +50,9 @@ export function initModalNovaPasta(options = {}) {
     const Cargo            = document.getElementById('selectCargo');
     // Select para o setor do funcionário (RH)
     const Setor            = document.getElementById('selectSetor');
+    // Campos RH: data de nascimento e faltas
+    const DataNascimento   = document.getElementById('inputDataNascimento');
+    const FaltasInput      = document.getElementById('inputFaltas');
     // Container onde os cards das pastas criadas serão exibidos na tela
     const listaPastas      = document.getElementById('listaPastas');
 
@@ -109,6 +112,8 @@ export function initModalNovaPasta(options = {}) {
     const uploadInfoSetor  = document.getElementById('uploadInfoSetor');
     const uploadInfoCaptacao = document.getElementById('uploadInfoCaptacao');
     const uploadInfoParceiro = document.getElementById('uploadInfoParceiro');
+    const uploadInfoDataNascimento = document.getElementById('uploadInfoDataNascimento');
+    const uploadInfoFaltas         = document.getElementById('uploadInfoFaltas');
     // Botão azul "Editar" no cabeçalho do modal – mostra/esconde o form de edição
     const btnEditar        = document.getElementById('btnEditar');
     // Formulário de edição (nome, CPF, cargo, setor) – fica oculto até clicar em Editar
@@ -120,6 +125,8 @@ export function initModalNovaPasta(options = {}) {
     const editSetor        = document.getElementById('editSetor');
     const editCaptacao     = document.getElementById('editCaptacao');
     const editParceiro     = document.getElementById('editParceiro');
+    const editDataNascimento = document.getElementById('editDataNascimento');
+    const editFaltasInput    = document.getElementById('editFaltas');
     // Botão "SALVAR" no formulário de edição
     const btnSalvarEdicao  = document.getElementById('btnSalvarEdicao');
     // Botão "CANCELAR" no formulário de edição
@@ -228,6 +235,8 @@ export function initModalNovaPasta(options = {}) {
             uploadInfoCpf.textContent   = 'CPF: '    + mascaraCpf(dados.cpf);
             uploadInfoCargo.textContent = 'Cargo: '  + dados.cargo;
             uploadInfoSetor.textContent = 'Setor: '  + dados.setor;
+            if (uploadInfoDataNascimento) uploadInfoDataNascimento.textContent = dados.data_nascimento ? 'Nasc: ' + dados.data_nascimento : '';
+            if (uploadInfoFaltas) uploadInfoFaltas.textContent = dados.faltas != null ? 'Faltas: ' + dados.faltas : '';
         } else {
             if (uploadInfoCpf) uploadInfoCpf.textContent = 'CPF: ' + mascaraCpf(dados.cpf);
             if (uploadInfoCaptacao) uploadInfoCaptacao.textContent = 'Captação: ' + (dados.captacao || '');
@@ -291,6 +300,8 @@ export function initModalNovaPasta(options = {}) {
                 editCpf.value   = mascaraCpf(pastaSelecionada.cpf);
                 editCargo.value = pastaSelecionada.cargo;
                 editSetor.value = pastaSelecionada.setor;
+                if (editDataNascimento) editDataNascimento.value = pastaSelecionada.data_nascimento || '';
+                if (editFaltasInput)    editFaltasInput.value    = pastaSelecionada.faltas != null ? pastaSelecionada.faltas : 0;
             } else {
                 if (editCpf) editCpf.value = mascaraCpf(pastaSelecionada.cpf);
                 if (editCaptacao) editCaptacao.value = pastaSelecionada.captacao || '__';
@@ -320,6 +331,8 @@ export function initModalNovaPasta(options = {}) {
         let setor = '';
         let captacao = '';
         let parceiro = '';
+        let data_nascimento = '';
+        let faltas = 0;
 
         if (!isComercial) {
             if (editCpf.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
@@ -328,6 +341,8 @@ export function initModalNovaPasta(options = {}) {
             cpf = editCpf.value.trim();
             cargo = editCargo.value;
             setor = editSetor.value;
+            data_nascimento = editDataNascimento ? editDataNascimento.value : '';
+            faltas = editFaltasInput ? parseInt(editFaltasInput.value, 10) || 0 : 0;
         } else {
             if (editCpf && editCpf.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
             if (editCaptacao && editCaptacao.value === '__') { alert('Selecione a forma de captação'); return; }
@@ -340,22 +355,24 @@ export function initModalNovaPasta(options = {}) {
         // Captura o ID da pasta que está sendo editada
         const id    = pastaSelecionada.id;
         const nome  = editNome.value.trim();
+        const data_nascimento = (!isComercial && editDataNascimento) ? editDataNascimento.value : '';
+        const faltas          = (!isComercial && editFaltasInput)    ? parseInt(editFaltasInput.value, 10) || 0 : 0;
 
         // Envia a requisição PUT para o servidor atualizar no banco de dados
         fetch('/pastas/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual })
+            body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual, data_nascimento, faltas })
         })
         .then(r => r.json())
         .then(() => {
             // Atualiza os dados no array local (sem precisar recarregar a página)
             const idx = pastas.findIndex(p => p.id == id);
             if (idx !== -1) {
-                pastas[idx] = { ...pastas[idx], nome, cpf, cargo, setor, captacao, parceiro };
+                pastas[idx] = { ...pastas[idx], nome, cpf, cargo, setor, captacao, parceiro, data_nascimento, faltas };
             }
             // Atualiza a variável da pasta atualmente selecionada
-            pastaSelecionada = { ...pastaSelecionada, nome, cpf, cargo, setor, captacao, parceiro };
+            pastaSelecionada = { ...pastaSelecionada, nome, cpf, cargo, setor, captacao, parceiro, data_nascimento, faltas };
 
             // Atualiza o card na lista de pastas com os novos dados
             const pastaEl = listaPastas.querySelector(`[data-id="${id}"]`);
@@ -374,7 +391,9 @@ export function initModalNovaPasta(options = {}) {
                         infoSpan.textContent = [
                             cpf   ? mascaraCpf(cpf) : '',
                             cargo ? cargo           : '',
-                            setor ? setor           : ''
+                            setor ? setor           : '',
+                            data_nascimento ? 'Nasc: ' + data_nascimento : '',
+                            faltas > 0      ? 'Faltas: ' + faltas        : ''
                         ].filter(Boolean).join('  ·  ');
                     }
                 }
@@ -386,6 +405,8 @@ export function initModalNovaPasta(options = {}) {
                 uploadInfoCpf.textContent   = 'CPF: '   + mascaraCpf(cpf);
                 uploadInfoCargo.textContent = 'Cargo: ' + cargo;
                 uploadInfoSetor.textContent = 'Setor: ' + setor;
+                if (uploadInfoDataNascimento) uploadInfoDataNascimento.textContent = data_nascimento ? 'Nasc: ' + data_nascimento : '';
+                if (uploadInfoFaltas) uploadInfoFaltas.textContent = 'Faltas: ' + faltas;
             } else {
                 if (uploadInfoCpf) uploadInfoCpf.textContent = 'CPF: ' + mascaraCpf(cpf);
                 if (uploadInfoCaptacao) uploadInfoCaptacao.textContent = 'Captação: ' + captacao;
@@ -1040,6 +1061,8 @@ export function initModalNovaPasta(options = {}) {
         let setor = '';
         let captacao = '';
         let parceiro = '';
+        let data_nascimento = '';
+        let faltas = 0;
 
         if (!isComercial) {
             if (CpfFFuncionario.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
@@ -1048,6 +1071,8 @@ export function initModalNovaPasta(options = {}) {
             cpf = CpfFFuncionario.value.trim();
             cargo = Cargo.value;
             setor = Setor.value;
+            data_nascimento = DataNascimento ? DataNascimento.value : '';
+            faltas = FaltasInput ? parseInt(FaltasInput.value, 10) || 0 : 0;
         } else {
             if (CpfFFuncionario && CpfFFuncionario.value.replace(/\D/g,'').length < 11) { alert('Preencha o CPF completo (000.000.000-00)'); return; }
             if (Captacao && Captacao.value === '__') { alert('Selecione a forma de captação'); return; }
@@ -1064,7 +1089,7 @@ export function initModalNovaPasta(options = {}) {
         fetch('/pastas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual })
+            body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual, data_nascimento, faltas })
         })
         .then(r => r.json())
         .then(data => {
@@ -1081,6 +1106,8 @@ export function initModalNovaPasta(options = {}) {
                 CpfFFuncionario.value = '';
                 Cargo.value = '__';
                 Setor.value = '__';
+                if (DataNascimento) DataNascimento.value = '';
+                if (FaltasInput)    FaltasInput.value    = '0';
             } else {
                 if (CpfFFuncionario) CpfFFuncionario.value = '';
                 if (Captacao) Captacao.value = '__';
@@ -1137,7 +1164,9 @@ export function initModalNovaPasta(options = {}) {
             infoEl.textContent = [
                 dados.cpf   ? mascaraCpf(dados.cpf) : '',
                 dados.cargo ? dados.cargo           : '',
-                dados.setor ? dados.setor           : ''
+                dados.setor ? dados.setor           : '',
+                dados.data_nascimento ? 'Nasc: ' + dados.data_nascimento : '',
+                dados.faltas > 0      ? 'Faltas: ' + dados.faltas        : ''
             ].filter(Boolean).join('  ·  ');
         }
 
@@ -1198,10 +1227,14 @@ export function initModalNovaPasta(options = {}) {
     // e a função retorna silenciosamente.
     // ──────────────────────────────────────────────────────────────
     function atualizarStats() {
-        const elTotal = document.getElementById('cardTotalPastas');
-        const elHoje  = document.getElementById('cardHojePastas');
-        // Se os cards não existem na página, não há nada a fazer
-        if (!elTotal && !elHoje) return;
+        // Tenta os IDs do módulo RH (3 cards)
+        const elTotalRH   = document.getElementById('cardTotalFuncionarios');
+        const elAniver    = document.getElementById('cardAniversarios');
+        const elFaltas    = document.getElementById('cardFaltas');
+        // Tenta os IDs do módulo Comercial (2 cards)
+        const elTotal     = document.getElementById('cardTotalPastas');
+        const elHoje      = document.getElementById('cardHojePastas');
+        if (!elTotalRH && !elAniver && !elFaltas && !elTotal && !elHoje) return;
 
         fetch('/pastas/stats?modulo=' + moduloAtual)
             .then(r => r.json())
@@ -1222,6 +1255,9 @@ export function initModalNovaPasta(options = {}) {
                 }
                 setValor(elTotal, data.total);
                 setValor(elHoje,  data.hoje);
+                setValor(elTotalRH, data.total);
+                setValor(elAniver,  data.aniversarios);
+                setValor(elFaltas,  data.faltas_total);
             })
             .catch(err => console.error('Erro ao buscar stats:', err));
     }
