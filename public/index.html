@@ -12,11 +12,9 @@
   <main class="page">
     <section class="card">
       <div class="logo-area">
-        <!-- Logo do usuário (PNG) -->
-        <img class="logo" src="./asset/logo.png" alt="UP Consultoria Previdenciária" onerror="this.style.display='none'; this.parentElement.classList.add('no-logo');">
-        <!-- SVG fallback (apenas em caso extremo) -->
-        <svg class="logo-svg" width="120" height="120" viewBox="0 0 100 100" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" role="img">
-          <title>UP</title>
+        <img class="logo" src="./asset/logo.png" alt="UP Consultoria Previdenciária"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <svg class="logo-svg" width="120" height="120" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
           <circle cx="50" cy="50" r="48" fill="#111" />
           <text x="50" y="58" text-anchor="middle" fill="#d4af37" font-family="Arial, sans-serif" font-size="40" font-weight="700">UP</text>
         </svg>

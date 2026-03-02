@@ -56,14 +56,6 @@ body {
   margin: 0 auto 18px;
 }
 
-.logo-area.no-logo .logo-svg {
-  display: block;
-}
-
-.logo-area.no-logo .logo {
-  display: none;
-}
-
 .subtitle {
   color: rgba(200,144,1,0.8);
   margin-bottom: 12px;
