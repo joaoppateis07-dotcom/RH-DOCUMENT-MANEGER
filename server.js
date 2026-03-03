@@ -207,6 +207,15 @@ app.post("/login", (req, res) => {
 app.get("/login",  (_req, res) => res.redirect("/"));
 app.get("/logout", (_req, res) => { res.clearCookie("logado", { path: "/" }); res.redirect("/"); });
 app.get("/ping",   (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+app.get("/db-status", async (_req, res) => {
+  try {
+    const r = await db.execute("SELECT COUNT(*) AS total FROM pastas");
+    const turso_url = process.env.TURSO_URL || "sqlite-local";
+    const has_token = !!(process.env.TURSO_TOKEN);
+    const has_cloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+    res.json({ ok: true, db: turso_url, has_token, has_cloudinary, total_pastas: Number(r.rows[0]?.total ?? 0) });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
 app.get("/",       (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 // ── Rotas: Stats ──────────────────────────────────────────────────────────────

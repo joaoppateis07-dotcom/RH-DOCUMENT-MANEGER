@@ -399,7 +399,7 @@ export function initModalNovaPasta(options = {}) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual, data_nascimento })
         })
-        .then(r => r.json())
+        .then(r => r.json().then(data => { if (!r.ok) throw new Error(data.error || 'Erro ao salvar no servidor'); return data; }))
         .then(() => {
             // Atualiza os dados no array local (sem precisar recarregar a página)
             const idx = pastas.findIndex(p => p.id == id);
@@ -1124,7 +1124,7 @@ export function initModalNovaPasta(options = {}) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual, data_nascimento })
         })
-        .then(r => r.json())
+        .then(r => r.json().then(data => { if (!r.ok) throw new Error(data.error || 'Erro ao salvar no servidor'); return data; }))
         .then(data => {
             // Adiciona a nova pasta no array local com o ID gerado pelo banco
             pastas.push(data);
