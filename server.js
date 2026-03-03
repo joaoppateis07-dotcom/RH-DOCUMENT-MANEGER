@@ -2,10 +2,13 @@
 const { createClient } = require("@libsql/client");
 const cloudinaryLib = require("cloudinary");
 const http    = require("http");
+const https   = require("https");
 const path    = require("path");
 const fs      = require("fs");
+const { Readable } = require("stream");
 const express = require("express");
 const multer  = require("multer");
+const archiver = require("archiver");
 
 // ── Cloudinary (produção) vs Disco (desenvolvimento) ──────────────────────────
 const USE_CLOUDINARY = !!(
@@ -346,6 +349,58 @@ app.put("/pastas/:id", async (req, res) => {
     await db.execute({ sql: "UPDATE pastas SET nome=?, cpf=?, cargo=?, setor=?, captacao=?, parceiro=?, modulo=?, data_nascimento=?, faltas=? WHERE id=?", args: [nome, cpf||"", cargo||"", setor||"", captacao||"", parceiro||"", mod, dn, ft, id] });
     res.json({ id: Number(id), nome, cpf: cpf||"", cargo: cargo||"", setor: setor||"", captacao: captacao||"", parceiro: parceiro||"", modulo: mod, data_nascimento: dn, faltas: ft });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Rota: Exportar pasta como ZIP ────────────────────────────────────────────
+app.get("/pastas/:id/exportar", async (req, res) => {
+  try {
+    const pastaR = await db.execute({ sql: "SELECT * FROM pastas WHERE id = ?", args: [req.params.id] });
+    if (!pastaR.rows[0]) return res.status(404).json({ error: "Pasta nao encontrada" });
+    const pasta = pastaR.rows[0];
+
+    const arqRaizR   = await db.execute({ sql: "SELECT * FROM arquivos WHERE pasta_id = ? AND (subpasta_id IS NULL OR subpasta_id = 0) ORDER BY criado_em ASC", args: [pasta.id] });
+    const subpastasR = await db.execute({ sql: "SELECT * FROM subpastas WHERE pasta_id = ? ORDER BY criado_em ASC", args: [pasta.id] });
+    const subArqMap  = {};
+    for (const sub of subpastasR.rows) {
+      const r = await db.execute({ sql: "SELECT * FROM arquivos WHERE subpasta_id = ? ORDER BY criado_em ASC", args: [sub.id] });
+      subArqMap[sub.id] = r.rows;
+    }
+
+    const nomeSanitizado = (pasta.nome + "_" + pasta.cpf).replace(/[\/\\:*?"<>|]/g, "_");
+    res.setHeader("Content-Disposition", `attachment; filename="${nomeSanitizado}.zip"`);
+    res.setHeader("Content-Type", "application/zip");
+
+    const archive = archiver("zip", { zlib: { level: 6 } });
+    archive.pipe(res);
+
+    // Busca arquivo por URL (Cloudinary) ou disco seguindo redirecionamentos via fetch
+    const fetchStream = async (url) => {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return Readable.fromWeb(r.body);
+    };
+
+    const addArquivo = async (arq, folder) => {
+      const fileName  = arq.nome_original || arq.nome_arquivo;
+      const entryName = folder ? `${folder}/${fileName}` : fileName;
+      if (USE_CLOUDINARY && arq.url_arquivo) {
+        const stream = await fetchStream(arq.url_arquivo);
+        archive.append(stream, { name: entryName });
+      } else {
+        const fp = path.join(UPLOADS_DIR, arq.nome_arquivo);
+        if (fs.existsSync(fp)) archive.file(fp, { name: entryName });
+      }
+    };
+
+    for (const arq of arqRaizR.rows)                     await addArquivo(arq, null);
+    for (const sub of subpastasR.rows)
+      for (const arq of (subArqMap[sub.id] || []))        await addArquivo(arq, sub.nome);
+
+    await archive.finalize();
+  } catch (err) {
+    console.error("Erro ao exportar pasta:", err.message);
+    if (!res.headersSent) res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Rotas: Arquivos de uma pasta ──────────────────────────────────────────────

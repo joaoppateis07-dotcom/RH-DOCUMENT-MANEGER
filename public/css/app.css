@@ -476,6 +476,17 @@ body {
 .btn-export:hover {
     background: linear-gradient(135deg, #22915a, #1d7a4a);
 }
+.btn-export-pasta {
+    background: linear-gradient(135deg, #2a6496, #1a4a73);
+    color: #fff;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(42,100,150,0.3);
+}
+.btn-export-pasta:hover {
+    background: linear-gradient(135deg, #3178b0, #2a6496);
+}
 /* Toast de confirmação de colagem de arquivo */
 .toast-paste {
     position: fixed;

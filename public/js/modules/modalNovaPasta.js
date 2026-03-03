@@ -1102,6 +1102,15 @@ export function initModalNovaPasta(options = {}) {
         return mapa[ext] || '📎'; // Retorna o ícone correspondente ou clipe genérico
     }
 
+    // Botão "Exportar Pasta" – baixa ZIP com todos os arquivos e subpastas
+    const btnExportarPasta = document.getElementById('btnExportarPasta');
+    if (btnExportarPasta) {
+        btnExportarPasta.addEventListener('click', () => {
+            if (!pastaSelecionada) return;
+            window.open(`/pastas/${pastaSelecionada.id}/exportar`, '_blank');
+        });
+    }
+
     // Botão "Concluído" fecha e limpa o modal
     btnSair.addEventListener('click', fecharModalUpload);
 
