@@ -1049,6 +1049,43 @@ export function initModalNovaPasta(options = {}) {
         fileInput.value = '';
     });
 
+    // ── COLAR ARQUIVOS (Ctrl+V) ──────────────────────────────────────────────
+    // Captura arquivos copiados do Explorer ou de qualquer lugar e faz upload
+    // para a pasta/subpasta que estiver aberta no momento.
+    document.addEventListener('paste', (e) => {
+        if (!pastaSelecionada) return; // só funciona quando uma pasta está aberta
+        const files = Array.from(e.clipboardData?.files || []);
+        if (!files.length) return;
+        e.preventDefault();
+        const formData = new FormData();
+        files.forEach(f => formData.append('arquivos', f));
+        const uploadUrl = subpastaAtual
+            ? '/subpastas/' + subpastaAtual.id + '/arquivos'
+            : '/pastas/' + pastaSelecionada.id + '/arquivos';
+        mostrarToastPaste(files.length);
+        fetch(uploadUrl, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(inseridos => {
+                inseridos.forEach(arq => {
+                    renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || '/uploads/' + arq.nome_arquivo);
+                });
+                marcarAlteracao();
+            })
+            .catch(() => alert('Erro ao colar arquivo. Tente novamente.'));
+    });
+
+    function mostrarToastPaste(qtd) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-paste';
+        toast.textContent = `📋 ${qtd} arquivo${qtd > 1 ? 's colados' : ' colado'}…`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('toast-paste-show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('toast-paste-show');
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
     // ──────────────────────────────────────────────────────────────
     // FUNÇÃO: getIcone
     // Retorna um emoji adequado para cada tipo de arquivo,
@@ -1295,6 +1332,49 @@ export function initModalNovaPasta(options = {}) {
 
     // Atualiza os cards de resumo assim que as pastas forem carregadas
     atualizarStats();
+
+    // ── EXPORTAR PASTAS ──────────────────────────────────────────────────────
+    // Botão na topbar que baixa todos os funcionários do módulo atual em XLSX.
+    const btnExportarPastas = document.getElementById('btnExportarPastas');
+    if (btnExportarPastas) {
+        btnExportarPastas.addEventListener('click', async () => {
+            try {
+                const r = await fetch(`/pastas?modulo=${moduloAtual}`);
+                const raw = await r.json();
+                const lista = Array.isArray(raw) ? raw : (raw.pastas || []);
+                if (!lista.length) {
+                    alert('Nenhum funcionário cadastrado para exportar.');
+                    return;
+                }
+                const fmt = iso => {
+                    if (!iso) return '';
+                    const [a, m, d] = iso.split('-');
+                    return `${d}/${m}/${a}`;
+                };
+                const linhas = lista.map(p => ({
+                    Nome:                p.nome      || '',
+                    CPF:                 p.cpf       || '',
+                    Setor:               p.setor     || '',
+                    Cargo:               p.cargo     || '',
+                    'Data de Nascimento': fmt(p.data_nascimento),
+                    'Captação':          p.captacao  || '',
+                    Parceiro:            p.parceiro  || '',
+                    'Criado em':         fmt((p.criado_em || '').slice(0, 10)),
+                }));
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(linhas);
+                ws['!cols'] = [
+                    { wch: 35 }, { wch: 16 }, { wch: 20 }, { wch: 22 },
+                    { wch: 18 }, { wch: 18 }, { wch: 30 }, { wch: 13 }
+                ];
+                XLSX.utils.book_append_sheet(wb, ws, 'Funcionários');
+                const hoje = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `funcionarios_${hoje}.xlsx`);
+            } catch {
+                alert('Erro ao exportar funcionários. Tente novamente.');
+            }
+        });
+    }
 
     // ── MODAL ANIVERSARIANTES DO MÊS ────────────────────────────────
     // Ao clicar no card de Aniversários do Mês (somente RH)
