@@ -1032,7 +1032,7 @@ export function initModalNovaPasta(options = {}) {
 
         // Envia para o servidor – o browser define o Content-Type automaticamente
         fetch(uploadUrl, { method: 'POST', body: formData })
-        .then(r => r.json())
+        .then(r => r.json().then(data => { if (!r.ok) throw new Error(data.error || `Erro ${r.status}`); return data; }))
         .then(inseridos => {
             // Para cada arquivo salvo, renderiza o card na lista
             inseridos.forEach(arq => {
@@ -1042,7 +1042,7 @@ export function initModalNovaPasta(options = {}) {
         })
         .catch(err => {
             console.error('Erro ao fazer upload:', err);
-            alert('Erro ao enviar arquivo. Tente novamente.');
+            alert('Erro ao enviar arquivo: ' + err.message);
         });
 
         // Limpa o input para permitir selecionar o mesmo arquivo novamente
@@ -1064,14 +1064,14 @@ export function initModalNovaPasta(options = {}) {
             : '/pastas/' + pastaSelecionada.id + '/arquivos';
         mostrarToastPaste(files.length);
         fetch(uploadUrl, { method: 'POST', body: formData })
-            .then(r => r.json())
+            .then(r => r.json().then(data => { if (!r.ok) throw new Error(data.error || `Erro ${r.status}`); return data; }))
             .then(inseridos => {
                 inseridos.forEach(arq => {
                     renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || '/uploads/' + arq.nome_arquivo);
                 });
                 marcarAlteracao();
             })
-            .catch(() => alert('Erro ao colar arquivo. Tente novamente.'));
+            .catch(err => { console.error('Erro ao colar:', err); alert('Erro ao colar arquivo: ' + err.message); });
     });
 
     function mostrarToastPaste(qtd) {
