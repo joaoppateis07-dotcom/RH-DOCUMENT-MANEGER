@@ -60,6 +60,7 @@ export function initModalNovaPasta(options = {}) {
     const btnLimparPesquisa= document.getElementById('btnLimparPesquisa');
     const semResultados    = document.getElementById('semResultados');
     const termoPesquisado  = document.getElementById('termoPesquisado');
+    const contadorResultados = document.getElementById('contadorResultados');
 
     // Filtra os cards de pasta visíveis com base no texto digitado
     function filtrarPastas() {
@@ -69,6 +70,8 @@ export function initModalNovaPasta(options = {}) {
         btnLimparPesquisa.classList.toggle('hidden', termo === '');
 
         let visiveis = 0;
+        const totalCards = document.querySelectorAll('#listaPastas .pasta').length;
+
         document.querySelectorAll('#listaPastas .pasta').forEach(card => {
             const pasta = pastas.find(p => p.id == card.dataset.id);
             if (!pasta) return;
@@ -79,6 +82,19 @@ export function initModalNovaPasta(options = {}) {
             if (bate) visiveis++;
         });
 
+        // Contador de resultados
+        if (contadorResultados) {
+            if (termo === '') {
+                contadorResultados.textContent = '';
+                contadorResultados.classList.add('hidden');
+            } else {
+                contadorResultados.textContent = visiveis === 1
+                    ? '1 pasta encontrada'
+                    : `${visiveis} pastas encontradas`;
+                contadorResultados.classList.remove('hidden');
+            }
+        }
+
         // Exibe mensagem de "não encontrado" somente quando há termo e resultado zero
         if (termo !== '' && visiveis === 0) {
             termoPesquisado.textContent = inputPesquisa.value.trim();
@@ -88,7 +104,31 @@ export function initModalNovaPasta(options = {}) {
         }
     }
 
+    // Filtro em tempo real
     inputPesquisa.addEventListener('input', filtrarPastas);
+
+    // Enter: confirma a pesquisa (já filtrado em tempo real, foca o 1º resultado)
+    inputPesquisa.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const primeiro = document.querySelector('#listaPastas .pasta:not([style*="none"])');
+            if (primeiro) primeiro.focus();
+        }
+        // Esc: limpa a pesquisa
+        if (e.key === 'Escape') {
+            inputPesquisa.value = '';
+            filtrarPastas();
+        }
+    });
+
+    // Atalho de teclado: Ctrl+F ou / abre e foca a barra
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey && e.key === 'f') || (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA')) {
+            e.preventDefault();
+            inputPesquisa.focus();
+            inputPesquisa.select();
+        }
+    });
 
     // Botão ✕: limpa o campo e restaura todos os cards
     btnLimparPesquisa.addEventListener('click', () => {
@@ -1300,7 +1340,7 @@ export function initModalNovaPasta(options = {}) {
     // Busca o total de pastas e as criadas hoje no servidor
     // e preenche os cards de resumo no topo da página.
     // Funciona apenas quando os elementos existem no HTML
-    // (Módulo Comercial) — no módulo RH os elementos não existem
+    // (Módulo Comercial) — no módulo RH os elementos não existembarra de pesquisa
     // e a função retorna silenciosamente.
     // ──────────────────────────────────────────────────────────────
     function atualizarStats() {
