@@ -1,17 +1,8 @@
 # Dependências
 node_modules/
 
-# Banco de dados e uploads — ficam em public/midia/ localmente, NÃO commitar
-public/midia/db.sqlite
-public/midia/db.sqlite-shm
-public/midia/db.sqlite-wal
+# Uploads locais (dev) — ficam em public/midia/uploads/, NÃO commitar
 public/midia/uploads/
-
-# Compatível com caminhos antigos (caso existam)
-db.sqlite
-db.sqlite-shm
-db.sqlite-wal
-uploads/
 
 # Logs
 npm-debug.log*

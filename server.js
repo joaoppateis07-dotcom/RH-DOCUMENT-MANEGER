@@ -1,5 +1,5 @@
 ﻿require("dotenv").config();
-const { createClient } = require("@libsql/client");
+const mysql2      = require("mysql2/promise");
 const cloudinaryLib = require("cloudinary");
 const http    = require("http");
 const path    = require("path");
@@ -34,83 +34,126 @@ const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(MIDIA_DIR, "uploads");
 // Garante que pasta local existe (usado apenas em dev)
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-// ── Banco de dados (Turso em producao / SQLite local em dev) ──────────────────
-const db = createClient({
-  url:       process.env.TURSO_URL   || "file:public/midia/db.sqlite",
-  authToken: process.env.TURSO_TOKEN || undefined,
+// ── Banco de dados (MySQL) ────────────────────────────────────────────────────
+// Configure as variáveis de ambiente abaixo no arquivo .env
+// O integrador deve criar o banco manualmente: CREATE DATABASE gerenciador_pastas;
+const pool = mysql2.createPool({
+  host:               process.env.DB_HOST     || "localhost",
+  port:               parseInt(process.env.DB_PORT || "3306"),
+  user:               process.env.DB_USER     || "root",
+  password:           process.env.DB_PASS     || "",
+  database:           process.env.DB_NAME     || "gerenciador_pastas",
+  waitForConnections: true,
+  connectionLimit:    10,
+  charset:            "utf8mb4",
 });
+
+// Wrapper com a mesma interface que o código todo usa ({sql, args} / .rows / .lastInsertRowid)
+// Isso mantém todas as rotas abaixo inalteradas ao trocar de banco.
+const db = {
+  async execute(sqlOrObj) {
+    const sql    = typeof sqlOrObj === "string" ? sqlOrObj : sqlOrObj.sql;
+    const params = typeof sqlOrObj === "object" && !Array.isArray(sqlOrObj)
+      ? (sqlOrObj.args || [])
+      : [];
+    const [result] = await pool.execute(sql, params);
+    if (Array.isArray(result)) {
+      return { rows: result };
+    }
+    return { rows: [], lastInsertRowid: result.insertId };
+  },
+  // Executa múltiplas queries em uma única transação
+  async batch(ops) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const op of ops) {
+        await conn.execute(op.sql, op.args || []);
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  },
+};
 
 // ── Inicializacao das tabelas ─────────────────────────────────────────────────
 async function inicializarDB() {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS pastas (
-      id              INTEGER PRIMARY KEY AUTOINCREMENT,
-      nome            TEXT NOT NULL,
-      cpf             TEXT NOT NULL,
-      cargo           TEXT NOT NULL DEFAULT '',
-      setor           TEXT NOT NULL DEFAULT '',
-      captacao        TEXT DEFAULT '',
-      parceiro        TEXT DEFAULT '',
-      modulo          TEXT DEFAULT 'RH',
-      criado_em       TEXT DEFAULT (datetime('now')),
-      data_nascimento TEXT DEFAULT '',
-      faltas          INTEGER DEFAULT 0
-    )
+      id              INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      nome            VARCHAR(255) NOT NULL,
+      cpf             VARCHAR(20)  NOT NULL DEFAULT '',
+      cargo           VARCHAR(100) NOT NULL DEFAULT '',
+      setor           VARCHAR(100) NOT NULL DEFAULT '',
+      captacao        VARCHAR(100)          DEFAULT '',
+      parceiro        VARCHAR(255)          DEFAULT '',
+      modulo          VARCHAR(20)           DEFAULT 'RH',
+      criado_em       DATETIME              DEFAULT CURRENT_TIMESTAMP,
+      data_nascimento VARCHAR(10)           DEFAULT '',
+      faltas          INT                   DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
   console.log("Tabela 'pastas' pronta");
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS arquivos (
-      id            INTEGER PRIMARY KEY AUTOINCREMENT,
-      pasta_id      INTEGER NOT NULL,
-      nome_original TEXT    NOT NULL,
-      nome_arquivo  TEXT    NOT NULL,
-      mimetype      TEXT    NOT NULL,
-      tamanho       INTEGER NOT NULL,
-      criado_em     TEXT    NOT NULL DEFAULT (datetime('now')),
-      subpasta_id   INTEGER DEFAULT NULL,
-      FOREIGN KEY (pasta_id) REFERENCES pastas(id) ON DELETE CASCADE
-    )
+      id            INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      pasta_id      INT          NOT NULL,
+      nome_original VARCHAR(255) NOT NULL,
+      nome_arquivo  VARCHAR(255) NOT NULL,
+      mimetype      VARCHAR(100) NOT NULL DEFAULT '',
+      tamanho       BIGINT       NOT NULL DEFAULT 0,
+      criado_em     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      subpasta_id   INT                   DEFAULT NULL,
+      url_arquivo   TEXT                  DEFAULT NULL,
+      CONSTRAINT fk_arq_pasta FOREIGN KEY (pasta_id) REFERENCES pastas(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
   console.log("Tabela 'arquivos' pronta");
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS subpastas (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      pasta_id  INTEGER NOT NULL,
-      nome      TEXT    NOT NULL,
-      criado_em TEXT    NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (pasta_id) REFERENCES pastas(id) ON DELETE CASCADE
-    )
+      id        INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      pasta_id  INT          NOT NULL,
+      nome      VARCHAR(255) NOT NULL,
+      criado_em DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_sub_pasta FOREIGN KEY (pasta_id) REFERENCES pastas(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
   console.log("Tabela 'subpastas' pronta");
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS registros_falta (
-      id              INTEGER PRIMARY KEY AUTOINCREMENT,
-      pasta_id        INTEGER NOT NULL,
-      data_falta      TEXT    NOT NULL,
-      tem_atestado    INTEGER NOT NULL DEFAULT 0,
-      atestado_inicio TEXT    NOT NULL DEFAULT '',
-      atestado_fim    TEXT    NOT NULL DEFAULT '',
-      criado_em       TEXT    NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (pasta_id) REFERENCES pastas(id) ON DELETE CASCADE
-    )
+      id              INT         NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      pasta_id        INT         NOT NULL,
+      data_falta      DATE        NOT NULL,
+      tem_atestado    TINYINT(1)  NOT NULL DEFAULT 0,
+      atestado_inicio VARCHAR(10) NOT NULL DEFAULT '',
+      atestado_fim    VARCHAR(10) NOT NULL DEFAULT '',
+      criado_em       DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_falta_pasta FOREIGN KEY (pasta_id) REFERENCES pastas(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
   console.log("Tabela 'registros_falta' pronta");
 
+  // Migrations seguras: adiciona colunas que podem não existir em bancos criados
+  // antes de uma atualização. O erro 1060 = coluna já existe → ignorado.
   const migrations = [
-    "ALTER TABLE pastas   ADD COLUMN captacao        TEXT    DEFAULT ''",
-    "ALTER TABLE pastas   ADD COLUMN parceiro        TEXT    DEFAULT ''",
-    "ALTER TABLE pastas   ADD COLUMN modulo          TEXT    DEFAULT 'RH'",
-    "ALTER TABLE pastas   ADD COLUMN criado_em       TEXT    DEFAULT (datetime('now'))",
-    "ALTER TABLE pastas   ADD COLUMN data_nascimento TEXT    DEFAULT ''",
-    "ALTER TABLE pastas   ADD COLUMN faltas          INTEGER DEFAULT 0",
-    "ALTER TABLE arquivos ADD COLUMN subpasta_id     INTEGER DEFAULT NULL",
-    "ALTER TABLE arquivos ADD COLUMN url_arquivo     TEXT    DEFAULT ''",
+    "ALTER TABLE pastas   ADD COLUMN captacao        VARCHAR(100)  DEFAULT ''",
+    "ALTER TABLE pastas   ADD COLUMN parceiro        VARCHAR(255)  DEFAULT ''",
+    "ALTER TABLE pastas   ADD COLUMN modulo          VARCHAR(20)   DEFAULT 'RH'",
+    "ALTER TABLE pastas   ADD COLUMN criado_em       DATETIME      DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE pastas   ADD COLUMN data_nascimento VARCHAR(10)   DEFAULT ''",
+    "ALTER TABLE pastas   ADD COLUMN faltas          INT           DEFAULT 0",
+    "ALTER TABLE arquivos ADD COLUMN subpasta_id     INT           DEFAULT NULL",
+    "ALTER TABLE arquivos ADD COLUMN url_arquivo     TEXT          DEFAULT NULL",
   ];
   for (const sql of migrations) {
-    try { await db.execute(sql); } catch (_) { /* coluna ja existe */ }
+    try { await db.execute(sql); } catch (e) { if (e.errno !== 1060) throw e; }
   }
   console.log("Migrations seguras aplicadas");
 }
@@ -168,6 +211,11 @@ async function excluirArquivo(public_id) {
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// MOUNT_PATH: deixe vazio quando rodar como servidor independente.
+// Se integrado como sub-app (pai.use('/rh', app)), defina MOUNT_PATH=/rh
+// para que todos os redirects e o helper window.__BASE do frontend funcionem.
+const MOUNT = (process.env.MOUNT_PATH || "").replace(/\/$/, "");
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -179,6 +227,14 @@ app.use((req, _res, next) => {
 app.use("/uploads", express.static(UPLOADS_DIR));
 app.use("/midia", (_req, res) => res.status(403).end());
 
+// Injeta window.__BASE no frontend para que os fetch() funcionem mesmo quando
+// o app é montado em um sub-caminho (ex: MOUNT_PATH=/rh → window.__BASE='/rh')
+app.get("/config.js", (_req, res) => {
+  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache");
+  res.send(`window.__BASE = "${MOUNT}";`);
+});
+
 app.use((req, res, next) => {
   if (req.path.startsWith("/html/")) {
     const cookie     = req.headers.cookie || "";
@@ -187,7 +243,7 @@ app.use((req, res, next) => {
       res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       res.set("Pragma", "no-cache");
       res.set("Expires", "0");
-      return res.status(401).redirect("/?unauthorized=1");
+      return res.status(401).redirect(`${MOUNT}/?unauthorized=1`);
     }
   }
   next();
@@ -219,7 +275,7 @@ const HTML_LOGIN_REDIRECT = `<!DOCTYPE html>
     <div class="spinner"></div>
     <p>Autenticando…</p>
   </div>
-  <script>setTimeout(() => { window.location = "/html/select.html"; }, 1200);</script>
+  <script>setTimeout(() => { window.location = "${MOUNT}/html/select.html"; }, 1200);</script>
 </body>
 </html>`;
 
@@ -233,19 +289,19 @@ app.post("/login", (req, res) => {
     res.cookie("logado", "true", { maxAge: 24*60*60*1000, httpOnly: false, path: "/", sameSite: "lax" });
     return res.status(200).send(HTML_LOGIN_REDIRECT);
   }
-  return res.redirect("/?login=failed");
+  return res.redirect(`${MOUNT}/?login=failed`);
 });
 
-app.get("/login",  (_req, res) => res.redirect("/"));
-app.get("/logout", (_req, res) => { res.clearCookie("logado", { path: "/" }); res.redirect("/"); });
+app.get("/login",  (_req, res) => res.redirect(`${MOUNT}/`));
+app.get("/logout", (_req, res) => { res.clearCookie("logado", { path: "/" }); res.redirect(`${MOUNT}/`); });
 app.get("/ping",   (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 app.get("/db-status", async (_req, res) => {
   try {
     const r = await db.execute("SELECT COUNT(*) AS total FROM pastas");
-    const turso_url = process.env.TURSO_URL || "sqlite-local";
-    const has_token = !!(process.env.TURSO_TOKEN);
+    const db_host        = process.env.DB_HOST     || "localhost";
+    const db_name        = process.env.DB_NAME     || "gerenciador_pastas";
     const has_cloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
-    res.json({ ok: true, db: turso_url, has_token, has_cloudinary, total_pastas: Number(r.rows[0]?.total ?? 0) });
+    res.json({ ok: true, db: `mysql://${db_host}/${db_name}`, has_cloudinary, total_pastas: Number(r.rows[0]?.total ?? 0) });
   } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
 });
 app.get("/",       (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
@@ -259,14 +315,14 @@ app.get("/pastas/stats", async (req, res) => {
     const ano    = new Date().getFullYear().toString();
 
     if (modulo === "RH") {
-      const r1 = await db.execute({ sql: `SELECT COUNT(*) AS total, SUM(CASE WHEN data_nascimento != '' AND strftime('%m', data_nascimento) = ? THEN 1 ELSE 0 END) AS aniversarios FROM pastas WHERE modulo = 'RH'`, args: [mes] });
+      const r1 = await db.execute({ sql: `SELECT COUNT(*) AS total, SUM(CASE WHEN data_nascimento != '' AND DATE_FORMAT(data_nascimento, '%m') = ? THEN 1 ELSE 0 END) AS aniversarios FROM pastas WHERE modulo = 'RH'`, args: [mes] });
       const row = r1.rows[0];
       const total        = Number(row?.total ?? 0);
       const aniversarios = Number(row?.aniversarios ?? 0);
-      const r2 = await db.execute({ sql: `SELECT SUM(CASE WHEN tem_atestado = 1 AND atestado_inicio != '' AND atestado_fim != '' THEN CAST(julianday(atestado_fim) - julianday(atestado_inicio) + 1 AS INTEGER) ELSE 1 END) AS faltas_total FROM registros_falta WHERE strftime('%Y-%m', data_falta) = ?`, args: [ano + "-" + mes] });
+      const r2 = await db.execute({ sql: `SELECT SUM(CASE WHEN tem_atestado = 1 AND atestado_inicio != '' AND atestado_fim != '' THEN DATEDIFF(atestado_fim, atestado_inicio) + 1 ELSE 1 END) AS faltas_total FROM registros_falta WHERE DATE_FORMAT(data_falta, '%Y-%m') = ?`, args: [ano + "-" + mes] });
       return res.json({ total, aniversarios, faltas_total: Number(r2.rows[0]?.faltas_total ?? 0) });
     }
-    const r = await db.execute({ sql: "SELECT COUNT(*) AS total, SUM(CASE WHEN date(criado_em) = ? THEN 1 ELSE 0 END) AS hoje FROM pastas WHERE modulo = ?", args: [hoje, modulo] });
+    const r = await db.execute({ sql: "SELECT COUNT(*) AS total, SUM(CASE WHEN DATE(criado_em) = ? THEN 1 ELSE 0 END) AS hoje FROM pastas WHERE modulo = ?", args: [hoje, modulo] });
     return res.json({ total: Number(r.rows[0]?.total ?? 0), hoje: Number(r.rows[0]?.hoje ?? 0) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -274,7 +330,7 @@ app.get("/pastas/stats", async (req, res) => {
 app.get("/pastas/aniversarios-mes", async (_req, res) => {
   try {
     const mes = new Date().toISOString().slice(5, 7);
-    const r = await db.execute({ sql: `SELECT nome, data_nascimento FROM pastas WHERE modulo = 'RH' AND data_nascimento != '' AND data_nascimento IS NOT NULL AND strftime('%m', data_nascimento) = ? ORDER BY strftime('%d', data_nascimento)`, args: [mes] });
+    const r = await db.execute({ sql: `SELECT nome, data_nascimento FROM pastas WHERE modulo = 'RH' AND data_nascimento != '' AND data_nascimento IS NOT NULL AND DATE_FORMAT(data_nascimento, '%m') = ? ORDER BY DATE_FORMAT(data_nascimento, '%d')`, args: [mes] });
     res.json(r.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -290,7 +346,7 @@ app.get("/registros-falta", async (req, res) => {
       args.push(inicio, fim);
     } else if (all !== "1") {
       const mesRef = mes || new Date().toISOString().slice(0, 7);
-      whereClauses.push("strftime('%Y-%m', rf.data_falta) = ?");
+      whereClauses.push("DATE_FORMAT(rf.data_falta, '%Y-%m') = ?");
       args.push(mesRef);
     }
     if (pasta_id) { whereClauses.push("rf.pasta_id = ?"); args.push(pasta_id); }
@@ -340,7 +396,7 @@ app.post("/pastas", async (req, res) => {
     }
     const dn = data_nascimento || "";
     const ft = parseInt(faltas, 10) || 0;
-    const ins = await db.execute({ sql: "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo, criado_em, data_nascimento, faltas) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)", args: [nome, cpf||"", cargo||"", setor||"", captacao||"", parceiro||"", mod, dn, ft] });
+    const ins = await db.execute({ sql: "INSERT INTO pastas (nome, cpf, cargo, setor, captacao, parceiro, modulo, data_nascimento, faltas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", args: [nome, cpf||"", cargo||"", setor||"", captacao||"", parceiro||"", mod, dn, ft] });
     res.status(201).json({ id: Number(ins.lastInsertRowid), nome, cpf: cpf||"", cargo: cargo||"", setor: setor||"", captacao: captacao||"", parceiro: parceiro||"", modulo: mod, data_nascimento: dn, faltas: ft });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -355,7 +411,7 @@ app.delete("/pastas/:id", async (req, res) => {
       { sql: "DELETE FROM subpastas       WHERE pasta_id = ?", args: [id] },
       { sql: "DELETE FROM registros_falta WHERE pasta_id = ?", args: [id] },
       { sql: "DELETE FROM pastas          WHERE id = ?",       args: [id] },
-    ], "write");
+    ]);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -490,7 +546,7 @@ app.delete("/pastas/:id/subpastas/:subId", async (req, res) => {
     await db.batch([
       { sql: "DELETE FROM arquivos  WHERE subpasta_id = ?", args: [subId] },
       { sql: "DELETE FROM subpastas WHERE id = ?",          args: [subId] },
-    ], "write");
+    ]);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

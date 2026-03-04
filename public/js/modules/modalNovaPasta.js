@@ -9,6 +9,10 @@
 //  - Editar as informações de uma pasta já existente
 //  - Adicionar arquivos à pasta e permitir abri-los
 // ============================================================
+// Prefixo base para todos os fetch() — necessário quando o app é montado em
+// um sub-caminho (ex: MOUNT_PATH=/rh). O servidor injeta este valor via /config.js.
+const BASE = window.__BASE || '';
+
 export function initModalNovaPasta(options = {}) {
     const isComercial = options.isComercial || false;
     const moduloAtual = isComercial ? 'COMERCIAL' : 'RH';
@@ -275,7 +279,7 @@ export function initModalNovaPasta(options = {}) {
         el.textContent = '';
         el.className = '';
         const mesRef = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
-        fetch(`/registros-falta?mes=${mesRef}&pasta_id=${pastaId}`)
+        fetch(BASE + `/registros-falta?mes=${mesRef}&pasta_id=${pastaId}`)
             .then(r => r.json())
             .then(lista => {
                 const [ano, mes] = mesRef.split('-').map(Number);
@@ -442,7 +446,7 @@ export function initModalNovaPasta(options = {}) {
         const nome  = editNome.value.trim();
 
         // Envia a requisição PUT para o servidor atualizar no banco de dados
-        fetch('/pastas/' + id, {
+        fetch(BASE + '/pastas/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual, data_nascimento })
@@ -602,7 +606,7 @@ export function initModalNovaPasta(options = {}) {
             },
             // Confirmar: envia DELETE ao servidor e remove definitivamente
             () => {
-                fetch('/pastas/' + id, { method: 'DELETE' })
+                fetch(BASE + '/pastas/' + id, { method: 'DELETE' })
                     .then(r => r.json())
                     .then(() => {
                         // Remove do array em memória
@@ -628,12 +632,12 @@ export function initModalNovaPasta(options = {}) {
     // e renderiza-os na área de upload do modal.
     // ──────────────────────────────────────────────────────────
     function carregarArquivos(pastaId) {
-        fetch('/pastas/' + pastaId + '/arquivos')
+        fetch(BASE + '/pastas/' + pastaId + '/arquivos')
             .then(r => r.json())
             .then(arquivos => {
                 arquivos.forEach(arq => {
                     // URL pode ser do Cloudinary (produção) ou local (dev)
-                    const url = arq.url_arquivo || '/uploads/' + arq.nome_arquivo;
+                    const url = arq.url_arquivo || BASE + '/uploads/' + arq.nome_arquivo;
                     renderizarCardArquivo(arq.id, arq.nome_original, url);
                 });
             })
@@ -687,7 +691,7 @@ export function initModalNovaPasta(options = {}) {
                 () => { item.style.display = ''; },
                 // Confirmar: de fato remove do servidor e do DOM
                 () => {
-                    fetch('/pastas/' + pastaSelecionada.id + '/arquivos/' + arquivoId, { method: 'DELETE' })
+                    fetch(BASE + '/pastas/' + pastaSelecionada.id + '/arquivos/' + arquivoId, { method: 'DELETE' })
                         .then(r => r.json())
                         .then(() => {
                             item.remove();
@@ -717,7 +721,7 @@ export function initModalNovaPasta(options = {}) {
             moverRaiz.title = 'Mover de volta para a raiz da pasta';
             moverRaiz.addEventListener('click', (e) => {
                 e.stopPropagation();
-                fetch('/arquivos/' + arquivoId + '/mover', {
+                fetch(BASE + '/arquivos/' + arquivoId + '/mover', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ subpasta_id: null })
@@ -806,7 +810,7 @@ export function initModalNovaPasta(options = {}) {
     // ──────────────────────────────────────────────────────────────
     function carregarSubpastas(pastaId) {
         listaSubpastas.innerHTML = ''; // Limpa antes de repopular
-        fetch('/pastas/' + pastaId + '/subpastas')
+        fetch(BASE + '/pastas/' + pastaId + '/subpastas')
             .then(r => r.json())
             .then(subs => subs.forEach(s => renderizarCardSubpasta(s.id, s.nome)))
             .catch(err => console.error('Erro ao carregar subpastas:', err));
@@ -850,7 +854,7 @@ export function initModalNovaPasta(options = {}) {
                 () => { card.style.display = ''; },
                 // Confirmar: exclui no servidor
                 () => {
-                    fetch('/pastas/' + pastaSelecionada.id + '/subpastas/' + subId, { method: 'DELETE' })
+                    fetch(BASE + '/pastas/' + pastaSelecionada.id + '/subpastas/' + subId, { method: 'DELETE' })
                         .then(r => r.json())
                         .then(() => {
                             card.remove();
@@ -883,7 +887,7 @@ export function initModalNovaPasta(options = {}) {
             if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 const formData = new FormData();
                 Array.from(e.dataTransfer.files).forEach(f => formData.append('arquivos', f));
-                fetch('/subpastas/' + subId + '/arquivos', { method: 'POST', body: formData })
+                fetch(BASE + '/subpastas/' + subId + '/arquivos', { method: 'POST', body: formData })
                     .then(r => r.json())
                     .then(() => {
                         // Atualiza contador do card
@@ -898,7 +902,7 @@ export function initModalNovaPasta(options = {}) {
             const arquivoId = e.dataTransfer.getData('text/arquivo-id');
             if (!arquivoId) return;
 
-            fetch('/arquivos/' + arquivoId + '/mover', {
+            fetch(BASE + '/arquivos/' + arquivoId + '/mover', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ subpasta_id: Number(subId) })
@@ -968,7 +972,7 @@ export function initModalNovaPasta(options = {}) {
             const novoNome = renameInput.value.trim();
             cancelarRenomear();
             if (!novoNome || novoNome === nomeEl.textContent) return;
-            fetch('/subpastas/' + subId, {
+            fetch(BASE + '/subpastas/' + subId, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nome: novoNome })
@@ -1012,7 +1016,7 @@ export function initModalNovaPasta(options = {}) {
     // de contagem no card visual.
     // ──────────────────────────────────────────────────────────────
     function atualizarContagemSubpasta(card, subId) {
-        fetch('/subpastas/' + subId + '/arquivos')
+        fetch(BASE + '/subpastas/' + subId + '/arquivos')
             .then(r => r.json())
             .then(arqs => {
                 // Remove badge anterior se existir
@@ -1049,11 +1053,11 @@ export function initModalNovaPasta(options = {}) {
         listaSubpastas.style.display = 'none'; // Esconde subpastas enquanto navega dentro de uma
         verificarTextoVazio();
 
-        fetch('/subpastas/' + subId + '/arquivos')
+        fetch(BASE + '/subpastas/' + subId + '/arquivos')
             .then(r => r.json())
             .then(arqs => {
                 arqs.forEach(arq =>
-                    renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || '/uploads/' + arq.nome_arquivo)
+                    renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || BASE + '/uploads/' + arq.nome_arquivo)
                 );
             })
             .catch(err => console.error('Erro ao carregar arquivos da subpasta:', err));
@@ -1099,7 +1103,7 @@ export function initModalNovaPasta(options = {}) {
         const nome = inputNomeSubpasta.value.trim();
         if (!nome) { mostrarAviso('Digite o nome da subpasta', 'aviso'); return; }
 
-        fetch('/pastas/' + pastaSelecionada.id + '/subpastas', {
+        fetch(BASE + '/pastas/' + pastaSelecionada.id + '/subpastas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome })
@@ -1144,8 +1148,8 @@ export function initModalNovaPasta(options = {}) {
 
         // A rota de upload muda dependendo se estamos na raiz ou dentro de uma subpasta
         const uploadUrl = subpastaAtual
-            ? '/subpastas/' + subpastaAtual.id + '/arquivos'
-            : '/pastas/' + pastaSelecionada.id + '/arquivos';
+            ? BASE + '/subpastas/' + subpastaAtual.id + '/arquivos'
+            : BASE + '/pastas/' + pastaSelecionada.id + '/arquivos';
 
         // Envia para o servidor – o browser define o Content-Type automaticamente
         fetch(uploadUrl, { method: 'POST', body: formData })
@@ -1153,7 +1157,7 @@ export function initModalNovaPasta(options = {}) {
         .then(inseridos => {
             // Para cada arquivo salvo, renderiza o card na lista
             inseridos.forEach(arq => {
-                renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || '/uploads/' + arq.nome_arquivo);
+                renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || BASE + '/uploads/' + arq.nome_arquivo);
             });
             marcarAlteracao();
         })
@@ -1177,14 +1181,14 @@ export function initModalNovaPasta(options = {}) {
         const formData = new FormData();
         files.forEach(f => formData.append('arquivos', f));
         const uploadUrl = subpastaAtual
-            ? '/subpastas/' + subpastaAtual.id + '/arquivos'
-            : '/pastas/' + pastaSelecionada.id + '/arquivos';
+            ? BASE + '/subpastas/' + subpastaAtual.id + '/arquivos'
+            : BASE + '/pastas/' + pastaSelecionada.id + '/arquivos';
         mostrarToastPaste(files.length);
         fetch(uploadUrl, { method: 'POST', body: formData })
             .then(r => r.json().then(data => { if (!r.ok) throw new Error(data.error || `Erro ${r.status}`); return data; }))
             .then(inseridos => {
                 inseridos.forEach(arq => {
-                    renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || '/uploads/' + arq.nome_arquivo);
+                    renderizarCardArquivo(arq.id, arq.nome_original, arq.url_arquivo || BASE + '/uploads/' + arq.nome_arquivo);
                 });
                 marcarAlteracao();
             })
@@ -1282,7 +1286,7 @@ export function initModalNovaPasta(options = {}) {
         const nome  = inputNomePasta.value.trim();
 
         // Envia POST para o servidor salvar a nova pasta no banco SQLite
-        fetch('/pastas', {
+        fetch(BASE + '/pastas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, cpf, cargo, setor, captacao, parceiro, modulo: moduloAtual, data_nascimento })
@@ -1427,7 +1431,7 @@ export function initModalNovaPasta(options = {}) {
     // e cria os cards na tela para cada uma delas.
     // ──────────────────────────────────────────────────────────────
     function carregarPastas() {
-        fetch('/pastas?modulo=' + moduloAtual)
+        fetch(BASE + '/pastas?modulo=' + moduloAtual)
             .then(r => r.json())
             .then(data => {
                 data.forEach((pasta, i) => {
@@ -1463,7 +1467,7 @@ export function initModalNovaPasta(options = {}) {
         const elHoje      = document.getElementById('cardHojePastas');
         if (!elTotalRH && !elAniver && !elFaltas && !elTotal && !elHoje) return;
 
-        fetch('/pastas/stats?modulo=' + moduloAtual)
+        fetch(BASE + '/pastas/stats?modulo=' + moduloAtual)
             .then(r => r.json())
             .then(data => {
                 // Função auxiliar: atualiza valor e dispara animação "pop"
@@ -1498,7 +1502,7 @@ export function initModalNovaPasta(options = {}) {
     if (btnExportarPastas) {
         btnExportarPastas.addEventListener('click', async () => {
             try {
-                const r = await fetch(`/pastas?modulo=${moduloAtual}`);
+                const r = await fetch(BASE + `/pastas?modulo=${moduloAtual}`);
                 const raw = await r.json();
                 const lista = Array.isArray(raw) ? raw : (raw.pastas || []);
                 if (!lista.length) {
@@ -1550,7 +1554,7 @@ export function initModalNovaPasta(options = {}) {
             listaAniv.innerHTML = '<p class="aniver-vazio">Carregando…</p>';
             modalAniv.classList.remove('hidden');
 
-            fetch('/pastas/aniversarios-mes')
+            fetch(BASE + '/pastas/aniversarios-mes')
                 .then(r => r.json())
                 .then(pessoas => {
                     listaAniv.innerHTML = '';
@@ -1624,7 +1628,7 @@ export function initModalNovaPasta(options = {}) {
     async function carregarFaltas() {
         listaFaltas.innerHTML = '<p class="faltas-vazio">Carregando…</p>';
         try {
-            const r = await fetch('/registros-falta?all=1');
+            const r = await fetch(BASE + '/registros-falta?all=1');
             const dados = await r.json();
             listaFaltas.innerHTML = '';
             if (!dados.length) {
@@ -1657,7 +1661,7 @@ export function initModalNovaPasta(options = {}) {
                     // Animação de saída antes de remover
                     item.classList.add('falta-item-saindo');
                     await new Promise(r => setTimeout(r, 320));
-                    await fetch(`/registros-falta/${f.id}`, { method: 'DELETE' });
+                    await fetch(BASE + `/registros-falta/${f.id}`, { method: 'DELETE' });
                     await carregarFaltas();
                     atualizarStats();
                     // Atualiza o contador de faltas na pasta que estiver aberta
@@ -1676,7 +1680,7 @@ export function initModalNovaPasta(options = {}) {
     async function popularSelectPessoas() {
         selectPessoaFalta.innerHTML = '<option value="">Selecione uma pessoa...</option>';
         try {
-            const r = await fetch('/pastas?modulo=RH');
+            const r = await fetch(BASE + '/pastas?modulo=RH');
             const lista = await r.json();
             (Array.isArray(lista) ? lista : (lista.pastas || [])).forEach(p => {
                 const opt = document.createElement('option');
@@ -1750,7 +1754,7 @@ export function initModalNovaPasta(options = {}) {
                     return;
                 }
                 try {
-                    const r = await fetch(`/registros-falta?inicio=${inicio}&fim=${fim}`);
+                    const r = await fetch(BASE + `/registros-falta?inicio=${inicio}&fim=${fim}`);
                     const dados = await r.json();
                     if (!dados.length) {
                         mostrarAviso('Nenhuma falta encontrada nesse período.', 'aviso');
@@ -1876,7 +1880,7 @@ export function initModalNovaPasta(options = {}) {
                 }
 
                 try {
-                    const res = await fetch('/registros-falta', {
+                    const res = await fetch(BASE + '/registros-falta', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body)

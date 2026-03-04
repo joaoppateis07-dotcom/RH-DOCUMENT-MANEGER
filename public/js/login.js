@@ -3,6 +3,9 @@ const form = document.getElementById('entrar');
 const msg  = document.getElementById('msg');
 const btn  = document.getElementById('loginBtn');
 
+// Ajusta action do form para suportar MOUNT_PATH (sub-caminho, ex: /rh/login)
+if (form) form.action = (window.__BASE || '') + '/login';
+
 // Exibe mensagens conforme query string (falha ou sessão expirada)
 const params = new URLSearchParams(window.location.search);
 if (params.get('login') === 'failed') {

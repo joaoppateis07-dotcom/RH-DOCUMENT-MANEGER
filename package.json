@@ -17,14 +17,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev":   "node --watch server.js"
+    "dev": "node --watch server.js"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.0",
     "archiver": "^7.0.1",
     "cloudinary": "^2.9.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "mysql2": "^3.18.2"
   }
 }
