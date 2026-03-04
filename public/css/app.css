@@ -145,6 +145,55 @@
     border: 1px solid rgba(200,144,1,0.2);
 }
 
+/* ── Barra de ordenação ─────────────────────────────────────────────
+   Controle para escolher a ordem de exibição das pastas. */
+#barraOrdenacao {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(252,172,1,0.10);
+    border-radius: 10px;
+    padding: 8px 16px;
+    margin-bottom: 20px;
+}
+
+#iconeOrdenacao {
+    font-size: 15px;
+    opacity: 0.45;
+    flex-shrink: 0;
+}
+
+#barraOrdenacao label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.38);
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+#selectOrdenacao {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(252,172,1,0.18);
+    border-radius: 7px;
+    color: #e8e8e8;
+    font-size: 13px;
+    font-family: inherit;
+    padding: 4px 10px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+#selectOrdenacao:hover,
+#selectOrdenacao:focus {
+    border-color: rgba(200,144,1,0.55);
+    box-shadow: 0 0 0 2px rgba(200,144,1,0.10);
+}
+#selectOrdenacao option {
+    background: #1a1a1a;
+    color: #e8e8e8;
+}
+
 /* Card "Nenhuma pasta encontrada" */
 #semResultados {
     display: flex;

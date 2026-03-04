@@ -61,6 +61,7 @@ export function initModalNovaPasta(options = {}) {
     const semResultados    = document.getElementById('semResultados');
     const termoPesquisado  = document.getElementById('termoPesquisado');
     const contadorResultados = document.getElementById('contadorResultados');
+    const selectOrdenacao     = document.getElementById('selectOrdenacao');
 
     // Filtra os cards de pasta visíveis com base no texto digitado
     function filtrarPastas() {
@@ -136,6 +137,14 @@ export function initModalNovaPasta(options = {}) {
         filtrarPastas();
         inputPesquisa.focus();
     });
+
+    // Seletor de ordenação: reordena os cards ao trocar o critério
+    if (selectOrdenacao) {
+        selectOrdenacao.addEventListener('change', () => {
+            ordenarPastas();
+            filtrarPastas();
+        });
+    }
 
     // ──────────────────────────────────────────────────────────────
     // REFERÊNCIAS DO MODAL "UPLOAD / DETALHES DA PASTA"
@@ -1215,9 +1224,10 @@ export function initModalNovaPasta(options = {}) {
             // Adiciona a nova pasta no array local com o ID gerado pelo banco
             pastas.push(data);
 
-            // Cria e insere o card visual na lista de pastas na posição alfabética correta
+            // Cria o card e insere na lista, depois reordena conforme critério ativo
             const novaPasta = criarCardPasta(data);
-            inserirCardOrdenado(novaPasta, data.nome);
+            listaPastas.appendChild(novaPasta);
+            ordenarPastas();
 
             // Limpa os campos do formulário para uma próxima criação
             NomePasta.value = '';
@@ -1312,25 +1322,34 @@ export function initModalNovaPasta(options = {}) {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // FUNÇÃO: inserirCardOrdenado
-    // Insere um card na listaPastas na posição alfabética correta
-    // pelo nome, para manter a lista sempre ordenada A → Z.
+    // FUNÇÃO: ordenarPastas
+    // Reordena os cards no DOM de acordo com o critério selecionado
+    // no #selectOrdenacao sem recriar os elementos.
     // ──────────────────────────────────────────────────────────────
-    function inserirCardOrdenado(card, nome) {
+    function ordenarPastas() {
+        const criterio = selectOrdenacao ? selectOrdenacao.value : 'nome-asc';
         const cards = Array.from(listaPastas.querySelectorAll('.pasta'));
-        const nomeNorm = (nome || '').toLowerCase();
 
-        // Encontra o primeiro card cujo nome vem depois do novo
-        const referencia = cards.find(c => {
-            const d = pastas.find(p => p.id == c.dataset.id);
-            return d && (d.nome || '').toLowerCase() > nomeNorm;
+        cards.sort((a, b) => {
+            const pa = pastas.find(p => p.id == a.dataset.id);
+            const pb = pastas.find(p => p.id == b.dataset.id);
+            if (!pa || !pb) return 0;
+            switch (criterio) {
+                case 'nome-asc':
+                    return (pa.nome || '').localeCompare(pb.nome || '', 'pt-BR', { sensitivity: 'base' });
+                case 'nome-desc':
+                    return (pb.nome || '').localeCompare(pa.nome || '', 'pt-BR', { sensitivity: 'base' });
+                case 'recente':
+                    return (pb.id || 0) - (pa.id || 0);
+                case 'antigo':
+                    return (pa.id || 0) - (pb.id || 0);
+                default:
+                    return 0;
+            }
         });
 
-        if (referencia) {
-            listaPastas.insertBefore(card, referencia);
-        } else {
-            listaPastas.appendChild(card);
-        }
+        // Reinsere na nova ordem sem recriar os elementos
+        cards.forEach(card => listaPastas.appendChild(card));
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -1346,10 +1365,11 @@ export function initModalNovaPasta(options = {}) {
                 data.forEach((pasta, i) => {
                     pastas.push(pasta); // Adiciona no array local
                     const card = criarCardPasta(pasta);
-                    // Entrada escalonada: cada card aparece 60ms depois do anterior
                     card.style.animationDelay = (i * 60) + 'ms';
-                    listaPastas.appendChild(card); // Cria o card na tela
+                    listaPastas.appendChild(card);
                 });
+                // Ordena conforme o critério selecionado (padrão: A → Z)
+                ordenarPastas();
             })
             .catch(err => console.error('Erro ao carregar pastas:', err));
     }

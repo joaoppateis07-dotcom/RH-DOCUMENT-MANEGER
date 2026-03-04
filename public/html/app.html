@@ -60,6 +60,18 @@
         <button id="btnLimparPesquisa" class="hidden" title="Limpar (Esc)">✕</button>
       </div>
 
+      <!-- Barra de ordenação: define a ordem de exibição das pastas -->
+      <div id="barraOrdenacao">
+        <span id="iconeOrdenacao">⇅</span>
+        <label for="selectOrdenacao">Ordenar por:</label>
+        <select id="selectOrdenacao">
+          <option value="nome-asc">A → Z (nome)</option>
+          <option value="nome-desc">Z → A (nome)</option>
+          <option value="recente">Mais recente primeiro</option>
+          <option value="antigo">Mais antigo primeiro</option>
+        </select>
+      </div>
+
       <!-- Mensagem exibida quando a pesquisa não encontra nenhum resultado -->
       <div id="semResultados" class="hidden">
         <div id="semResultadosIcone">🔍</div>
