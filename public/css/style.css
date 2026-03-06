@@ -132,73 +132,82 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ANIMAÇÕES DINÂMICAS — Login
+   ANIMAÇÕES — Login
    ══════════════════════════════════════════════════════════════ */
 
-@keyframes loginCardEntrada {
-  0%   { opacity: 0; transform: translateY(40px) scale(0.94); filter: blur(6px); }
-  60%  { filter: blur(0); }
-  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+/* Card: entrada limpa, sem blur */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
-@keyframes logoFlutuar {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-9px); }
+/* Logo: revela com scale elegante */
+@keyframes logoIn {
+  from { opacity: 0; transform: scale(0.86); }
+  to   { opacity: 1; transform: scale(1);    }
 }
 
-@keyframes logoGlow {
-  0%, 100% { filter: drop-shadow(0 0 6px rgba(200,144,1,0.35)); }
-  50%      { filter: drop-shadow(0 0 22px rgba(200,144,1,0.68)); }
+/* Logo: flutuação suave e lenta */
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
 }
 
-@keyframes fieldEntrada {
-  from { opacity: 0; transform: translateY(16px); }
+/* Elementos internos: fade + deslize mínimo */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes subtitleEntrada {
-  from { opacity: 0; letter-spacing: 8px; }
-  to   { opacity: 1; letter-spacing: normal; }
+/* Brilho dourado sutil e lento na borda do card */
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(200,144,1,0.16); }
+  50%      { border-color: rgba(200,144,1,0.38); }
 }
 
-/* Aplica animação de entrada ao card de login */
+/* Card de login */
 .card {
-  animation: loginCardEntrada 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: cardIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both,
+             borderGlow 4s 1.2s ease-in-out infinite;
 }
 
-/* Logo flutuante com brilho dourado pulsante */
+/* Logo: revela e depois flutua devagar */
 .logo {
-  animation: logoFlutuar 4s ease-in-out infinite,
-             logoGlow    3.5s ease-in-out infinite;
+  animation: logoIn 0.42s 0.06s cubic-bezier(0.22, 1, 0.36, 1) both,
+             logoFloat 6s 1.2s ease-in-out infinite;
 }
 .logo-svg {
-  animation: logoFlutuar 4s ease-in-out infinite;
+  animation: logoIn 0.42s 0.06s cubic-bezier(0.22, 1, 0.36, 1) both,
+             logoFloat 6s 1.2s ease-in-out infinite;
 }
 
-/* Subtítulo com entrada de letras expandindo */
+/* Subtítulo entra com fade simples */
 .subtitle {
-  animation: subtitleEntrada 0.55s 0.3s ease both;
+  animation: fadeUp 0.38s 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Campos entram escalonados de baixo para cima */
-.field:nth-of-type(1) { animation: fieldEntrada 0.4s 0.25s ease both; }
-.field:nth-of-type(2) { animation: fieldEntrada 0.4s 0.38s ease both; }
+/* Campos escalonados */
+.field:nth-child(1) { animation: fadeUp 0.36s 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.field:nth-child(2) { animation: fadeUp 0.36s 0.30s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Hint e botão entram após os campos */
-.hint { animation: fieldEntrada 0.4s 0.45s ease both; }
-.btn  { animation: fieldEntrada 0.4s 0.42s ease both; }
+/* Hint e botão */
+.hint { animation: fadeUp 0.36s 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.btn  { animation: fadeUp 0.36s 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Feedback de pressão no botão */
-.btn:active {
-  transform: scale(0.96) translateY(1px) !important;
-  box-shadow: 0 2px 8px rgba(200,144,1,0.15) !important;
-  transition-duration: 60ms !important;
-}
-
-/* Transição mais suave no focus do input */
+/* Input: transição rápida e responsiva */
 .input {
-  transition: box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
-.input:focus {
-  animation: none;
+
+/* Botão: hover e press limpos */
+.btn {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease;
+}
+.btn:hover {
+  transform: translateY(-2px);
+}
+.btn:active {
+  transform: scale(0.97) !important;
+  box-shadow: none !important;
+  transition-duration: 80ms !important;
 }
