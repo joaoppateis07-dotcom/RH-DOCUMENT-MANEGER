@@ -1,4 +1,5 @@
 // Mensagens e UX do formulário de login
+console.log('teste de console');
 const form = document.getElementById('entrar');
 const msg  = document.getElementById('msg');
 const btn  = document.getElementById('loginBtn');
